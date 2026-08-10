@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#b3441a" />
+    <meta name="theme-color" content="#060b1c" />
     <title>Collecte — carnet de collecte de données</title>
     <link
       rel="icon"
@@ -12,17 +12,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Spline+Sans+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:ital,wght@0,400..700;1,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body>
+  <body style="margin: 0; background: #060b1c">
     <div id="root">
       <div id="boot-fallback" style="
+        position: relative; z-index: 2;
         min-height: 70vh; display: flex; flex-direction: column;
         align-items: center; justify-content: center; gap: 14px;
-        font-family: Georgia, serif; color: #6f6350; text-align: center; padding: 24px;">
-        <p style="font-size: 22px; color: #221a10; margin: 0;">Collecte<span style="color:#b3441a">.</span></p>
+        font-family: Georgia, serif; color: #aab6da; text-align: center; padding: 24px;">
+        <p style="font-size: 22px; color: #eaf0ff; margin: 0;">Collecte<span style="color:#f6c66d">.</span></p>
         <p style="margin: 0; font-size: 14px;">Chargement…</p>
       </div>
     </div>
@@ -69,9 +70,9 @@
             var el = document.getElementById('boot-fallback')
             if (el) {
               el.innerHTML =
-                '<p style="font-size:22px;color:#221a10;margin:0">Collecte<span style="color:#b3441a">.</span></p>' +
+                '<p style="font-size:22px;color:#eaf0ff;margin:0">Collecte<span style="color:#f6c66d">.</span></p>' +
                 '<p style="margin:0;font-size:14px">Impossible de charger l\'application.<br>Vérifiez votre connexion, puis réessayez.</p>' +
-                '<button onclick="location.reload()" style="font:inherit;font-size:14px;padding:9px 18px;border:none;border-radius:8px;background:#b3441a;color:#fff7ee;cursor:pointer">Réessayer</button>'
+                '<button onclick="location.reload()" style="font:inherit;font-size:14px;padding:9px 18px;border:none;border-radius:8px;background:#f6c66d;color:#241505;cursor:pointer">Réessayer</button>'
             }
             return
           }

@@ -241,12 +241,29 @@ function TimelineChart({ submissions }: { submissions: Submission[] }) {
         role="img"
         aria-label="Nombre de réponses collectées par jour sur les 14 derniers jours"
       >
-        <polygon points={area} fill="rgba(179, 68, 26, 0.12)" />
+        {/* Le remplissage sous la courbe s'éteint vers le bas : un aplat uni
+            tournerait au gris sale sur fond nuit. Teintes dans styles.css. */}
+        <defs>
+          <linearGradient id="timeline-fade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" className="timeline-stop-top" />
+            <stop offset="100%" className="timeline-stop-bottom" />
+          </linearGradient>
+        </defs>
+        {/* Grille : trois filets à peine visibles, juste de quoi lire les hauteurs */}
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line
+            key={f}
+            className="timeline-grid"
+            x1={PAD}
+            x2={W - PAD}
+            y1={y(peak * f)}
+            y2={y(peak * f)}
+          />
+        ))}
+        <polygon points={area} className="timeline-area" />
         <polyline
           points={points}
-          fill="none"
-          stroke="#b3441a"
-          strokeWidth="2"
+          className="timeline-line"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -254,14 +271,7 @@ function TimelineChart({ submissions }: { submissions: Submission[] }) {
           (b, i) =>
             b.count > 0 && (
               <g key={b.date.getTime()}>
-                <circle
-                  cx={x(i)}
-                  cy={y(b.count)}
-                  r="3.5"
-                  fill="#8a3312"
-                  stroke="#fdfaf2"
-                  strokeWidth="1.5"
-                />
+                <circle cx={x(i)} cy={y(b.count)} r="3.5" className="timeline-dot" />
                 <text x={x(i)} y={y(b.count) - 8} textAnchor="middle" className="timeline-val">
                   {b.count}
                 </text>
@@ -298,17 +308,35 @@ function GeoScatter({ points }: { points: Submission[] }) {
       role="img"
       aria-label="Répartition géographique des entretiens"
     >
-      <rect x="0" y="0" width={W} height={H} rx="10" fill="#efe7d4" />
+      <rect x="0" y="0" width={W} height={H} rx="10" className="geo-plot" />
+      {/* Repères discrets : tiers de la zone, en filet quasi transparent */}
+      {[1, 2].map((i) => (
+        <line
+          key={`v${i}`}
+          className="geo-grid"
+          x1={(W / 3) * i}
+          x2={(W / 3) * i}
+          y1={P / 2}
+          y2={H - P / 2}
+        />
+      ))}
+      {[1, 2].map((i) => (
+        <line
+          key={`h${i}`}
+          className="geo-grid"
+          x1={P / 2}
+          x2={W - P / 2}
+          y1={(H / 3) * i}
+          y2={(H / 3) * i}
+        />
+      ))}
       {points.map((p) => (
         <circle
           key={p.id}
           cx={x(p.lng as number)}
           cy={y(p.lat as number)}
           r="5"
-          fill="#b3441a"
-          fillOpacity="0.75"
-          stroke="#fdfaf2"
-          strokeWidth="1.5"
+          className="geo-point"
         />
       ))}
     </svg>
@@ -730,11 +758,11 @@ export default function DashboardPage({
 body{font-family:Georgia,serif;background:#f5efe3;color:#221a10;margin:0;padding:40px 20px}
 main{max-width:760px;margin:0 auto;background:#fdfaf2;border:1px solid #e0d5bf;border-radius:12px;padding:40px 44px}
 h1{font-size:30px;margin:0 0 4px}h2{font-size:20px;border-bottom:1px solid #c8b998;padding-bottom:6px;margin:34px 0 14px}
-h3{font-size:16px;margin:22px 0 2px}.k{color:#8a3312;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:monospace}
+h3{font-size:16px;margin:22px 0 2px}.k{color:#8a5a12;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:monospace}
 .meta{color:#6f6350;font-size:12px;font-family:monospace;margin:0 0 8px}.nums{font-size:15px}
 .r{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:13.5px}.rl{min-width:160px;color:#6f6350}
 .rt{flex:1;height:12px;background:#efe7d4;border-radius:0 4px 4px 0;border-left:2px solid #c8b998;overflow:hidden}
-.rf{display:block;height:100%;background:linear-gradient(90deg,#b3441a,#8a3312);border-radius:0 4px 4px 0}
+.rf{display:block;height:100%;background:linear-gradient(90deg,#c99038,#8a5a12);border-radius:0 4px 4px 0}
 .rv{font-family:monospace;font-size:12px;min-width:76px;text-align:right}
 ul{padding-left:20px}li{margin:8px 0}
 footer{margin-top:36px;color:#9c8d75;font-size:11px;font-family:monospace;text-align:center}

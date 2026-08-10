@@ -1,31 +1,57 @@
 /* ————————————————————————————————————————————
    Collecte — carnet de terrain
-   Papier crème, encre chaude, accent terracotta.
-   Fraunces (display) · Instrument Sans (texte) · Spline Sans Mono (données)
+   Nuit étoilée, verre bleuté, accent or — même palette que l'écran de
+   connexion « Constellations » (login.css / model-15).
+   Fraunces (display) · Schibsted Grotesk (texte) · Spline Sans Mono (données)
    ———————————————————————————————————————————— */
 
 :root {
-  --paper: #f5efe3;
-  --surface: #fdfaf2;
-  --surface-2: #efe7d4;
-  --ink: #221a10;
-  --ink-2: #6f6350;
-  --ink-3: #9c8d75;
-  --line: #e0d5bf;
-  --line-strong: #c8b998;
-  --accent: #b3441a;
-  --accent-deep: #8a3312;
-  --accent-soft: #f4ded0;
-  --accent-wash: #f9efe4;
-  --olive: #5b6c1f;
-  --danger: #a3271e;
-  --danger-wash: #f7e3df;
+  color-scheme: dark; /* menus natifs, ascenseurs et autofill en sombre */
+
+  /* Ciel */
+  --night-1: #040713;
+  --night-2: #071026;
+  --night-3: #0b1330;
+  --paper: #050a18; /* fond de repli (rebond de défilement, impression) */
+
+  /* Verre */
+  --surface: rgba(12, 19, 44, 0.58); /* cartes, panneaux */
+  --surface-solid: #0b1329; /* même teinte, opaque (bordure dégradée) */
+  --surface-strong: rgba(11, 18, 42, 0.94); /* popovers, dialogues */
+  --surface-2: rgba(154, 178, 255, 0.09); /* pistes, puces, en-têtes de table */
+  --field: rgba(7, 12, 30, 0.62); /* fond des champs de saisie */
+  --field-line: rgba(158, 182, 255, 0.45); /* filet des champs (comme le login) */
+
+  /* Encres */
+  --ink: #eaf0ff;
+  --ink-2: #aab6da;
+  --ink-3: #8d99c4;
+
+  /* Filets */
+  --line: rgba(154, 178, 255, 0.15);
+  --line-strong: rgba(154, 178, 255, 0.3);
+
+  /* Or */
+  --gold: #f6c66d;
+  --gold-soft: #ffdf9e;
+  --gold-deep: #c99038;
+  --on-gold: #241505; /* encre posée sur un aplat d'or */
+  --accent: var(--gold);
+  --accent-deep: var(--gold-soft); /* variante lisible sur la nuit */
+  --accent-soft: rgba(246, 198, 109, 0.3);
+  --accent-wash: rgba(246, 198, 109, 0.1);
+
+  --sky: #9cc3ff;
+  --danger: #ff9d8a;
+  --danger-wash: rgba(255, 157, 138, 0.14);
+  --on-danger: #2a0f0a;
+
   --radius: 10px;
   --shadow:
-    0 1px 2px rgba(34, 26, 16, 0.06),
-    0 10px 30px -22px rgba(34, 26, 16, 0.4);
+    0 1px 2px rgba(2, 5, 18, 0.5),
+    0 18px 42px -26px rgba(0, 0, 0, 0.85);
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --font-body: 'Instrument Sans', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'Schibsted Grotesk', 'Instrument Sans', 'Segoe UI', Tahoma, sans-serif;
   --font-mono: 'Spline Sans Mono', Consolas, monospace;
 }
 
@@ -35,11 +61,12 @@
 
 html {
   scroll-behavior: smooth;
+  background-color: var(--paper);
 }
 
 ::selection {
-  background: var(--accent-soft);
-  color: var(--ink);
+  background: rgba(246, 198, 109, 0.32);
+  color: #fff;
 }
 
 * {
@@ -53,9 +80,10 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
+  background: rgba(154, 178, 255, 0.28);
   border-radius: 999px;
-  border: 3px solid var(--paper);
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-track {
@@ -68,26 +96,50 @@ body {
   font-size: 15px;
   line-height: 1.55;
   color: var(--ink);
-  background-color: var(--paper);
-  background-image: radial-gradient(rgba(34, 26, 16, 0.055) 1px, transparent 1.4px);
-  background-size: 24px 24px;
+  background-color: transparent;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Le ciel : UNE couche fixe, composée une seule fois. On évite
+   `background-attachment: fixed` (repeint à chaque frame de défilement sur
+   mobile) ; ici la couche ne bouge pas et n'est jamais redessinée. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--night-2);
+  background-image:
+    radial-gradient(rgba(154, 178, 255, 0.085) 1px, transparent 1.4px),
+    radial-gradient(120vmax 80vmax at 78% -10%, rgba(63, 88, 199, 0.2), transparent 55%),
+    radial-gradient(90vmax 70vmax at 8% 108%, rgba(246, 198, 109, 0.07), transparent 55%),
+    linear-gradient(168deg, var(--night-1) 0%, var(--night-2) 48%, var(--night-3) 100%);
+  background-size: 26px 26px, auto, auto, auto;
+}
+
+/* Le contenu passe DEVANT le ciel (une couche fixe se peint sinon par-dessus
+   le contenu non positionné). */
+.app,
+.crash-screen {
+  position: relative;
+  z-index: 1;
 }
 
 /* ————— Squelette ————— */
 
 .topbar {
   height: 5px;
-  background: linear-gradient(90deg, var(--accent-deep), var(--accent) 70%, #c96a34);
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 55%, var(--gold-soft));
 }
 
 .masthead-bar {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(245, 239, 227, 0.92);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(6, 11, 28, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
 
@@ -112,7 +164,8 @@ body {
 }
 
 .brand-dot {
-  color: var(--accent);
+  color: var(--gold);
+  text-shadow: 0 0 16px rgba(246, 198, 109, 0.7);
 }
 
 .brand-tagline {
@@ -188,13 +241,15 @@ body {
 
 .nav-link.active {
   color: var(--ink);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--gold);
 }
 
 .nav-count {
   font-size: 10px;
   line-height: 1.6;
-  background: var(--accent-soft);
+  /* Or clair sur voile d'or : un aplat d'or saturé avec de l'encre sombre
+     tomberait sous 3:1 une fois fondu dans la barre translucide. */
+  background: rgba(246, 198, 109, 0.18);
   color: var(--accent-deep);
   border-radius: 999px;
   padding: 1px 7px;
@@ -233,16 +288,20 @@ body {
   font: inherit;
   font-weight: 600;
   padding: 7px 30px 7px 12px;
-  border: 1px solid var(--ink-3);
+  border: 1px solid var(--field-line);
   border-radius: 8px;
-  background: #fffefb;
+  background: var(--field);
   color: var(--ink);
   cursor: pointer;
   max-width: min(300px, 60vw);
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236f6350' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23aab6da' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 11px center;
+}
+
+.q-select:hover {
+  border-color: rgba(158, 182, 255, 0.6);
 }
 
 .qn-goal {
@@ -266,7 +325,7 @@ body {
 .qn-goal-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 60%, var(--gold-soft));
   border-radius: 999px;
 }
 
@@ -277,6 +336,8 @@ body {
 }
 
 /* ————— Connexion ————— */
+/* (l'écran « Constellations » vit dans login.css — ces règles servent aux
+   états de repli et au pied de page hors ligne) */
 
 .login-wrap {
   min-height: calc(100dvh - 5px);
@@ -369,12 +430,14 @@ body {
   right: 0;
   z-index: 45;
   min-width: 210px;
-  background: var(--surface);
+  background: var(--surface-strong);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
   box-shadow:
-    0 20px 50px -20px rgba(34, 26, 16, 0.45),
-    0 2px 6px rgba(34, 26, 16, 0.1);
+    0 24px 60px -22px rgba(0, 0, 0, 0.85),
+    0 2px 6px rgba(2, 5, 18, 0.5);
   padding: 8px;
   animation: pop-in 0.16s cubic-bezier(0.2, 0.7, 0.3, 1.15) both;
 }
@@ -387,7 +450,7 @@ body {
   right: 11px;
   width: 10px;
   height: 10px;
-  background: var(--surface);
+  background: var(--surface-strong);
   border-left: 1px solid var(--line-strong);
   border-top: 1px solid var(--line-strong);
   transform: rotate(45deg);
@@ -445,7 +508,7 @@ body {
   overflow: hidden;
   display: inline-grid;
   place-items: center;
-  background: var(--surface);
+  background: var(--surface-2);
   text-decoration: none;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -457,8 +520,8 @@ body {
 
 .nav-avatar:hover,
 .nav-avatar.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(179, 68, 26, 0.15);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(246, 198, 109, 0.18);
 }
 
 .nav-avatar img {
@@ -549,8 +612,8 @@ body {
 .user-card:hover {
   border-color: var(--line-strong);
   box-shadow:
-    0 2px 4px rgba(34, 26, 16, 0.06),
-    0 16px 36px -22px rgba(34, 26, 16, 0.38);
+    0 2px 4px rgba(2, 5, 18, 0.5),
+    0 18px 40px -24px rgba(0, 0, 0, 0.9);
 }
 
 .user-head {
@@ -596,7 +659,7 @@ body {
 }
 
 .role-chip.admin {
-  border-color: var(--accent);
+  border-color: var(--gold);
   color: var(--accent-deep);
   background: var(--accent-wash);
 }
@@ -621,7 +684,7 @@ body {
 }
 
 .footer-retry:hover {
-  color: var(--accent);
+  color: var(--ink);
 }
 
 /* ————— Titres de page ————— */
@@ -642,7 +705,7 @@ body {
   content: '';
   height: 1px;
   width: 64px;
-  background: var(--line-strong);
+  background: linear-gradient(90deg, var(--line-strong), transparent);
 }
 
 .page-title {
@@ -652,6 +715,7 @@ body {
   letter-spacing: -0.02em;
   line-height: 1.1;
   margin: 0 0 8px;
+  text-shadow: 0 0 60px rgba(156, 195, 255, 0.22);
 }
 
 /* Focalisé programmatiquement au changement de route (annonce lecteur d'écran) */
@@ -680,7 +744,7 @@ body {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--line-strong);
+  background: linear-gradient(90deg, var(--line-strong), transparent);
 }
 
 .section-title.sm {
@@ -804,33 +868,35 @@ body {
   width: 100%;
   min-width: 0; /* un input dans un flex ne doit jamais forcer un débordement */
   padding: 10px 12px;
-  border: 1px solid var(--ink-3);
+  border: 1px solid var(--field-line);
   border-radius: 8px;
-  background: #fffefb;
+  background: var(--field);
   color: var(--ink);
   font: inherit;
-  box-shadow: inset 0 1px 2px rgba(34, 26, 16, 0.05);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  caret-color: var(--gold);
+  box-shadow: inset 0 1px 2px rgba(2, 5, 18, 0.35);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .input:hover {
-  border-color: var(--ink-2);
+  border-color: rgba(158, 182, 255, 0.6);
 }
 
 .input::placeholder {
-  color: var(--ink-2);
+  color: var(--ink-3);
 }
 
 .input:focus-visible {
   outline: none;
-  border-color: var(--accent);
+  border-color: rgba(246, 198, 109, 0.75);
+  background: rgba(7, 12, 30, 0.82);
   box-shadow:
-    0 0 0 3px rgba(179, 68, 26, 0.16),
-    inset 0 1px 2px rgba(34, 26, 16, 0.05);
+    0 0 0 3px rgba(246, 198, 109, 0.22),
+    inset 0 1px 2px rgba(2, 5, 18, 0.35);
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--gold-soft);
   outline-offset: 2px;
 }
 
@@ -842,8 +908,8 @@ input[type='radio'] {
   height: 18px;
   flex-shrink: 0;
   margin: 0;
-  border: 1.5px solid var(--line-strong);
-  background: #fffefb;
+  border: 1.5px solid var(--field-line);
+  background: var(--field);
   display: inline-grid;
   place-content: center;
   cursor: pointer;
@@ -860,22 +926,22 @@ input[type='radio'] {
 
 input[type='checkbox']:hover,
 input[type='radio']:hover {
-  border-color: var(--accent);
+  border-color: var(--gold);
 }
 
 input[type='checkbox']::before {
   content: '';
   width: 10px;
   height: 10px;
-  background: #fff7ee;
+  background: var(--on-gold);
   clip-path: polygon(14% 44%, 0 61%, 37% 100%, 100% 16%, 84% 3%, 36% 70%);
   transform: scale(0);
   transition: transform 0.12s cubic-bezier(0.2, 0.7, 0.3, 1.4);
 }
 
 input[type='checkbox']:checked {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--gold);
+  border-color: var(--gold);
 }
 
 input[type='checkbox']:checked::before {
@@ -887,13 +953,13 @@ input[type='radio']::before {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--gold);
   transform: scale(0);
   transition: transform 0.12s cubic-bezier(0.2, 0.7, 0.3, 1.4);
 }
 
 input[type='radio']:checked {
-  border-color: var(--accent);
+  border-color: var(--gold);
 }
 
 input[type='radio']:checked::before {
@@ -903,8 +969,8 @@ input[type='radio']:checked::before {
 input[type='checkbox']:focus-visible,
 input[type='radio']:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(179, 68, 26, 0.18);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(246, 198, 109, 0.25);
 }
 
 .check-line {
@@ -952,7 +1018,7 @@ input[type='radio']:focus-visible {
   padding: 9px 12px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #fffdf7;
+  background: rgba(154, 178, 255, 0.06);
   cursor: pointer;
   font: inherit;
   text-align: left;
@@ -961,13 +1027,13 @@ input[type='radio']:focus-visible {
 }
 
 .seg-btn:hover {
-  border-color: var(--ink-3);
+  border-color: rgba(158, 182, 255, 0.55);
 }
 
 .seg-btn.active {
-  border-color: var(--accent);
+  border-color: var(--gold);
   background: var(--accent-wash);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px var(--gold);
 }
 
 .seg-glyph {
@@ -977,7 +1043,7 @@ input[type='radio']:focus-visible {
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 14px;
   color: var(--accent-deep);
@@ -1036,7 +1102,7 @@ input[type='radio']:focus-visible {
 
 .preset-chip:hover {
   background: var(--accent-wash);
-  border-color: var(--accent);
+  border-color: var(--gold);
   transform: translateY(-1px);
 }
 
@@ -1084,7 +1150,7 @@ input[type='radio']:focus-visible {
 }
 
 .preset-chip.new.active {
-  border-color: var(--accent);
+  border-color: var(--gold);
   color: var(--accent-deep);
   background: var(--accent-wash);
 }
@@ -1094,7 +1160,7 @@ input[type='radio']:focus-visible {
   padding: 12px;
   border: 1.5px dashed var(--line-strong);
   border-radius: 10px;
-  background: rgba(253, 250, 242, 0.6);
+  background: rgba(154, 178, 255, 0.05);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1121,8 +1187,8 @@ input[type='radio']:focus-visible {
   margin-bottom: 18px;
   border: 1px solid transparent;
   background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, var(--accent), #d98a3d, var(--olive)) border-box;
+    linear-gradient(var(--surface-solid), var(--surface-solid)) padding-box,
+    linear-gradient(120deg, var(--gold), var(--gold-soft), var(--sky)) border-box;
 }
 
 .ai-head {
@@ -1188,7 +1254,7 @@ input[type='radio']:focus-visible {
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fffefb;
+  background: rgba(154, 178, 255, 0.05);
   cursor: pointer;
 }
 
@@ -1245,7 +1311,7 @@ input[type='radio']:focus-visible {
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
 .btn:active {
@@ -1253,21 +1319,19 @@ input[type='radio']:focus-visible {
 }
 
 .btn.primary {
-  background: linear-gradient(180deg, #c2531f, var(--accent) 45%, var(--accent-deep));
-  color: #fff7ee;
+  background: linear-gradient(160deg, var(--gold-soft) 0%, var(--gold) 45%, var(--gold-deep) 130%);
+  color: var(--on-gold);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 1px 2px rgba(34, 26, 16, 0.18),
-    0 8px 18px -10px rgba(138, 51, 18, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 22px -12px rgba(246, 198, 109, 0.75);
 }
 
 .btn.primary:hover {
   filter: brightness(1.06);
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 2px 4px rgba(34, 26, 16, 0.18),
-    0 12px 24px -10px rgba(138, 51, 18, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 14px 32px -12px rgba(246, 198, 109, 0.75);
 }
 
 .btn.primary:active {
@@ -1276,13 +1340,14 @@ input[type='radio']:focus-visible {
 }
 
 .btn.ghost {
-  background: transparent;
+  background: rgba(154, 178, 255, 0.05);
   border-color: var(--line-strong);
   color: var(--ink);
 }
 
 .btn.ghost:hover {
-  background: var(--surface-2);
+  background: rgba(154, 178, 255, 0.13);
+  border-color: rgba(158, 182, 255, 0.5);
 }
 
 .btn.danger {
@@ -1383,8 +1448,8 @@ input[type='radio']:focus-visible {
 .q-card:hover {
   border-color: var(--line-strong);
   box-shadow:
-    0 2px 4px rgba(34, 26, 16, 0.06),
-    0 16px 36px -22px rgba(34, 26, 16, 0.38);
+    0 2px 4px rgba(2, 5, 18, 0.5),
+    0 18px 40px -24px rgba(0, 0, 0, 0.9);
 }
 
 .q-card-head {
@@ -1418,7 +1483,7 @@ input[type='radio']:focus-visible {
 }
 
 .type-badge svg {
-  color: var(--ink-2);
+  color: var(--ink-3);
   flex-shrink: 0;
 }
 
@@ -1427,11 +1492,11 @@ input[type='radio']:focus-visible {
 }
 
 .type-badge.t-radio svg {
-  color: var(--accent);
+  color: var(--gold);
 }
 
 .type-badge.t-checkbox svg {
-  color: var(--olive);
+  color: var(--sky);
 }
 
 .req-badge {
@@ -1519,7 +1584,7 @@ input[type='radio']:focus-visible {
 
 .step-btn.active {
   color: var(--ink);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--gold);
 }
 
 .step-btn.done {
@@ -1533,17 +1598,17 @@ input[type='radio']:focus-visible {
   border-radius: 999px;
   padding: 3px 8px;
   color: var(--accent-deep);
-  background: var(--surface);
+  background: var(--surface-2);
 }
 
 .step-btn.active .step-num {
-  border-color: var(--accent);
+  border-color: var(--gold);
 }
 
 .step-btn.done .step-num {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff7ee;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--on-gold);
 }
 
 .step-line {
@@ -1653,7 +1718,7 @@ input[type='radio']:focus-visible {
 }
 
 .req {
-  color: var(--accent);
+  color: var(--gold);
   font-weight: 700;
 }
 
@@ -1671,18 +1736,18 @@ input[type='radio']:focus-visible {
 
 .choice-list.inline .choice {
   border: 1px solid var(--line);
-  background: #fffefb;
+  background: rgba(154, 178, 255, 0.05);
   border-radius: 999px;
   padding: 7px 15px 7px 11px;
 }
 
 .choice-list.inline .choice:hover {
-  border-color: var(--accent);
+  border-color: var(--gold);
   background: var(--accent-wash);
 }
 
 .choice-list.inline .choice:has(input:checked) {
-  border-color: var(--accent);
+  border-color: var(--gold);
   background: var(--accent-wash);
 }
 
@@ -1739,7 +1804,7 @@ input[type='radio']:focus-visible {
 .insights-card {
   padding: 16px 20px 14px;
   margin-bottom: 26px;
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--gold);
 }
 
 .insights-list {
@@ -1753,7 +1818,7 @@ input[type='radio']:focus-visible {
 }
 
 .insights-list li::marker {
-  color: var(--accent);
+  color: var(--gold);
 }
 
 .geo-svg {
@@ -1761,6 +1826,23 @@ input[type='radio']:focus-visible {
   height: auto;
   display: block;
   margin-top: 4px;
+}
+
+/* Fond, grille et points du nuage GPS : or sur nuit, filets quasi invisibles */
+.geo-plot {
+  fill: rgba(154, 178, 255, 0.055);
+}
+
+.geo-grid {
+  stroke: rgba(154, 178, 255, 0.12);
+  stroke-width: 1;
+}
+
+.geo-point {
+  fill: var(--gold);
+  fill-opacity: 0.85;
+  stroke: rgba(156, 195, 255, 0.6);
+  stroke-width: 1.4;
 }
 
 .geo-links {
@@ -1796,6 +1878,7 @@ input[type='radio']:focus-visible {
 
 .stat.accent .stat-value {
   color: var(--accent-deep);
+  text-shadow: 0 0 36px rgba(246, 198, 109, 0.35);
 }
 
 .stat-value.stat-date {
@@ -1903,7 +1986,7 @@ input[type='radio']:focus-visible {
 .bar-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 55%, var(--gold-soft));
   border-radius: 0 4px 4px 0;
   transform-origin: left center;
   animation: grow 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both;
@@ -1989,7 +2072,7 @@ input[type='radio']:focus-visible {
 .histo-bar {
   width: 100%;
   max-width: 46px;
-  background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold) 45%, var(--gold-deep));
   border-radius: 4px 4px 0 0;
 }
 
@@ -2017,6 +2100,37 @@ input[type='radio']:focus-visible {
   width: 100%;
   height: auto;
   display: block;
+}
+
+.timeline-grid {
+  stroke: rgba(154, 178, 255, 0.1);
+  stroke-width: 1;
+}
+
+.timeline-area {
+  fill: url(#timeline-fade);
+}
+
+.timeline-stop-top {
+  stop-color: var(--gold);
+  stop-opacity: 0.26;
+}
+
+.timeline-stop-bottom {
+  stop-color: var(--gold);
+  stop-opacity: 0.01;
+}
+
+.timeline-line {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+
+.timeline-dot {
+  fill: var(--gold-soft);
+  stroke: var(--night-2);
+  stroke-width: 1.5;
 }
 
 .timeline-val {
@@ -2152,7 +2266,7 @@ input[type='radio']:focus-visible {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(34, 26, 16, 0.35);
+  background: rgba(2, 5, 18, 0.62);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   display: flex;
@@ -2166,12 +2280,14 @@ input[type='radio']:focus-visible {
 .confirm-panel {
   position: relative;
   overflow: hidden;
-  background: var(--surface);
+  background: var(--surface-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
   box-shadow:
-    0 30px 80px -30px rgba(34, 26, 16, 0.55),
-    0 2px 6px rgba(34, 26, 16, 0.12);
+    0 40px 90px -30px rgba(0, 0, 0, 0.9),
+    0 2px 6px rgba(2, 5, 18, 0.6);
   max-width: 460px;
   width: 100%;
   padding: 26px 26px 22px;
@@ -2191,7 +2307,7 @@ input[type='radio']:focus-visible {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--accent-deep), var(--accent) 70%, #c96a34);
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
 }
 
 .confirm-title {
@@ -2228,16 +2344,16 @@ input[type='radio']:focus-visible {
 
 .btn.solid-danger {
   background: var(--danger);
-  color: #fff6f3;
+  color: var(--on-danger);
 }
 
 .btn.solid-danger:hover {
-  background: #872019;
-  box-shadow: 0 8px 20px -10px rgba(163, 39, 30, 0.6);
+  background: #ffb6a6;
+  box-shadow: 0 10px 26px -12px rgba(255, 157, 138, 0.8);
 }
 
 .confirm-actions .btn.primary:hover {
-  box-shadow: 0 8px 20px -10px rgba(179, 68, 26, 0.6);
+  box-shadow: 0 10px 26px -12px rgba(246, 198, 109, 0.85);
 }
 
 /* ————— États vides, toast, divers ————— */
@@ -2247,7 +2363,7 @@ input[type='radio']:focus-visible {
   border-radius: var(--radius);
   padding: 46px 30px;
   text-align: center;
-  background: rgba(253, 250, 242, 0.6);
+  background: rgba(154, 178, 255, 0.04);
 }
 
 .empty-title {
@@ -2285,14 +2401,19 @@ input[type='radio']:focus-visible {
 }
 
 .toast {
-  background: var(--ink);
-  color: var(--paper);
+  max-width: min(92vw, 520px);
+  background: var(--surface-strong);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--ink);
   font-family: var(--font-mono);
   font-size: 13px;
   padding: 11px 20px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 30px -10px rgba(34, 26, 16, 0.5);
+  border: 1px solid rgba(246, 198, 109, 0.45);
+  box-shadow:
+    0 18px 44px -18px rgba(0, 0, 0, 0.95),
+    0 0 24px -12px rgba(246, 198, 109, 0.5);
   animation: toast-in 0.25s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 

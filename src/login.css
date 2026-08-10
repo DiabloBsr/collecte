@@ -1,0 +1,895 @@
+/* ════════════════════════════════════════════════════════════════════
+   Écran de connexion — « Constellations »
+   ────────────────────────────────────────────────────────────────────
+   Feuille isolée : toutes les classes sont préfixées lg- et toutes les
+   variables sont portées par .lg-root (jamais :root) pour ne rien
+   emprunter — ni rien casser — dans styles.css.
+   ════════════════════════════════════════════════════════════════════ */
+
+.lg-root {
+  --lg-ink: #eaf0ff;
+  --lg-muted: #aab6da;
+  --lg-dim: #6d79a3; /* décor : filets, icônes, étoiles de label */
+  --lg-dim-text: #8d99c4; /* variante lisible (AA) pour le petit texte */
+  --lg-gold: #f6c66d;
+  --lg-gold-soft: #ffdf9e;
+  --lg-gold-deep: #c99038;
+  --lg-sky: #9cc3ff;
+  --lg-coral: #ff9d8a;
+  --lg-glass: rgba(12, 19, 44, 0.55);
+  --lg-line: rgba(158, 182, 255, 0.45);
+  --lg-font-display: 'Fraunces', Georgia, serif;
+  --lg-font-ui: 'Schibsted Grotesk', 'Instrument Sans', 'Segoe UI', sans-serif;
+  --lg-font-mono: 'Spline Sans Mono', ui-monospace, monospace;
+
+  /* Le ciel recouvre la fenêtre entière : la page défile à l'intérieur. */
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-family: var(--lg-font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--lg-ink);
+  background:
+    radial-gradient(120vmax 80vmax at 78% -10%, rgba(63, 88, 199, 0.2), transparent 55%),
+    radial-gradient(90vmax 70vmax at 8% 108%, rgba(246, 198, 109, 0.07), transparent 55%),
+    linear-gradient(168deg, #040713 0%, #071026 48%, #0b1330 100%);
+  -webkit-font-smoothing: antialiased;
+}
+
+.lg-root *,
+.lg-root *::before,
+.lg-root *::after {
+  box-sizing: border-box;
+}
+
+/* Remise à zéro à specificité nulle (:where) : les règles qui suivent
+   redonnent leurs marges aux éléments sans avoir à surenchérir. */
+.lg-root :where(h1, p, ul, li) {
+  margin: 0;
+  padding: 0;
+}
+
+.lg-root :where(ul) {
+  list-style: none;
+}
+
+.lg-root ::selection {
+  background: rgba(246, 198, 109, 0.32);
+  color: #fff;
+}
+
+/* ───────── Couches d'atmosphère ───────── */
+
+.lg-sky {
+  opacity: 0;
+  transition: opacity 1.6s ease 0.2s;
+}
+
+.lg-ready .lg-sky {
+  opacity: 1;
+}
+
+.lg-nebula {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lg-nebula::before,
+.lg-nebula::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+
+.lg-nebula::before {
+  width: 64vmax;
+  height: 64vmax;
+  left: -14vmax;
+  top: -22vmax;
+  background: radial-gradient(circle, rgba(70, 100, 235, 0.16), transparent 62%);
+  animation: lg-drift1 68s ease-in-out infinite alternate;
+}
+
+.lg-nebula::after {
+  width: 56vmax;
+  height: 56vmax;
+  right: -16vmax;
+  bottom: -20vmax;
+  background: radial-gradient(circle, rgba(246, 198, 109, 0.09), transparent 60%);
+  animation: lg-drift2 84s ease-in-out infinite alternate;
+}
+
+@keyframes lg-drift1 {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(9vmax, 6vmax, 0) scale(1.14);
+  }
+}
+
+@keyframes lg-drift2 {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  to {
+    transform: translate3d(-8vmax, -5vmax, 0) scale(0.96);
+  }
+}
+
+.lg-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+/* ───────── Scène ───────── */
+
+.lg-stage {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1680px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2rem, 5vw, 6rem);
+  padding: clamp(1.25rem, 4vw, 4rem);
+}
+
+/* ───────── Marque ───────── */
+
+.lg-brand {
+  max-width: 34rem;
+}
+
+.lg-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  font-family: var(--lg-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--lg-dim-text);
+}
+
+.lg-eyebrow::before {
+  content: '';
+  flex: none;
+  width: 2.2em;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lg-gold));
+}
+
+.lg-wordmark {
+  margin-top: 0.35em;
+  font-family: var(--lg-font-display);
+  font-optical-sizing: auto;
+  font-weight: 560;
+  font-size: clamp(3rem, 7.2vw, 6rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 60px rgba(156, 195, 255, 0.25);
+}
+
+.lg-dot {
+  display: inline-block;
+  color: var(--lg-gold);
+  text-shadow:
+    0 0 18px rgba(246, 198, 109, 0.9),
+    0 0 46px rgba(246, 198, 109, 0.45);
+  animation: lg-dot-pulse 3.4s ease-in-out infinite;
+}
+
+@keyframes lg-dot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+.lg-tagline {
+  margin-top: 1.1em;
+  max-width: 26em;
+  font-family: var(--lg-font-display);
+  font-style: italic;
+  font-weight: 340;
+  font-size: clamp(1.04rem, 1.8vw, 1.42rem);
+  line-height: 1.5;
+  color: var(--lg-muted);
+}
+
+.lg-tagline em {
+  font-style: italic;
+  color: var(--lg-gold-soft);
+  text-shadow: 0 0 22px rgba(246, 198, 109, 0.35);
+}
+
+.lg-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(1.1rem, 2.5vw, 2.6rem);
+  margin-top: clamp(1.5rem, 3vw, 2.6rem);
+}
+
+.lg-facts li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lg-fact {
+  font-family: var(--lg-font-mono);
+  font-weight: 500;
+  font-size: clamp(1rem, 1.7vw, 1.28rem);
+  color: var(--lg-ink);
+}
+
+.lg-fact::after {
+  content: ' ✦';
+  color: var(--lg-gold);
+  font-size: 0.62em;
+  vertical-align: 0.25em;
+}
+
+.lg-fact-lbl {
+  font-family: var(--lg-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lg-dim-text);
+}
+
+.lg-hint {
+  margin-top: clamp(1.5rem, 3vw, 3rem);
+  font-family: var(--lg-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lg-dim-text);
+}
+
+@media (pointer: coarse) {
+  .lg-hint {
+    display: none;
+  }
+}
+
+/* ───────── Nébuleuse de verre : le formulaire ───────── */
+
+.lg-panel {
+  width: min(27rem, 100%);
+}
+
+.lg-card {
+  position: relative;
+  width: 100%;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border-radius: 22px;
+  background: var(--lg-glass);
+  border: 1px solid rgba(160, 182, 255, 0.15);
+  box-shadow:
+    0 40px 90px rgba(2, 5, 18, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+    0 1px 0 rgba(215, 228, 255, 0.14) inset;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  overflow: hidden;
+  transform: perspective(1100px) rotateX(var(--lg-rx, 0deg)) rotateY(var(--lg-ry, 0deg));
+  transition: transform 0.2s ease-out;
+}
+
+.lg-card::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 30% at 78% 6%, rgba(246, 198, 109, 0.13), transparent 70%),
+    radial-gradient(45% 38% at 8% 96%, rgba(90, 120, 240, 0.16), transparent 70%);
+}
+
+.lg-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(246, 198, 109, 0.65), transparent);
+}
+
+.lg-card > * {
+  position: relative;
+}
+
+.lg-card.lg-shake {
+  animation: lg-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes lg-shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(3px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-5px);
+  }
+  40%,
+  60% {
+    transform: translateX(5px);
+  }
+}
+
+.lg-title {
+  font-family: var(--lg-font-display);
+  font-weight: 520;
+  font-size: clamp(1.7rem, 2.6vw, 2.15rem);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.lg-title-star {
+  color: var(--lg-gold);
+  font-size: 0.7em;
+  vertical-align: 0.18em;
+  text-shadow: 0 0 16px rgba(246, 198, 109, 0.6);
+}
+
+.lg-lead {
+  margin-top: 0.5rem;
+  margin-bottom: clamp(1.35rem, 2.5vw, 1.9rem);
+  font-family: var(--lg-font-display);
+  font-style: italic;
+  font-weight: 340;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--lg-muted);
+}
+
+/* ───────── Champs ───────── */
+
+.lg-field {
+  margin-bottom: 1.1rem;
+}
+
+.lg-field label {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lg-muted);
+}
+
+.lg-star {
+  color: var(--lg-dim);
+  font-size: 0.85em;
+  transition:
+    color 0.3s ease,
+    text-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+.lg-field:focus-within label {
+  color: var(--lg-ink);
+}
+
+.lg-field:focus-within .lg-star {
+  color: var(--lg-gold);
+  transform: scale(1.35) rotate(72deg);
+  text-shadow: 0 0 12px rgba(246, 198, 109, 0.9);
+}
+
+.lg-control {
+  position: relative;
+}
+
+.lg-control input {
+  width: 100%;
+  min-height: 54px;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--lg-ink);
+  background: rgba(7, 12, 30, 0.62);
+  border: 1px solid var(--lg-line);
+  border-radius: 12px;
+  caret-color: var(--lg-gold);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+.lg-control input::placeholder {
+  color: #7b87ae;
+}
+
+.lg-control input:hover {
+  border-color: rgba(158, 182, 255, 0.6);
+}
+
+.lg-control input:focus,
+.lg-control input:focus-visible {
+  outline: none;
+  border-color: rgba(246, 198, 109, 0.75);
+  background: rgba(7, 12, 30, 0.82);
+  box-shadow:
+    0 0 0 3px rgba(246, 198, 109, 0.22),
+    0 8px 30px rgba(2, 5, 18, 0.35);
+}
+
+/* Trait de constellation qui se tend sous le champ actif. */
+.lg-control::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--lg-gold) 30%, var(--lg-sky) 70%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.lg-field:focus-within .lg-control::after {
+  transform: scaleX(1);
+  opacity: 0.9;
+}
+
+.lg-control input.lg-has-eye {
+  padding-right: 56px;
+}
+
+.lg-eye {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  color: var(--lg-muted);
+  cursor: pointer;
+  transition:
+    color 0.25s ease,
+    background 0.25s ease;
+}
+
+.lg-eye:hover {
+  color: var(--lg-gold-soft);
+  background: rgba(246, 198, 109, 0.1);
+}
+
+.lg-eye svg {
+  width: 21px;
+  height: 21px;
+}
+
+/* ───────── Erreur ───────── */
+
+.lg-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--lg-coral);
+  background: rgba(255, 157, 138, 0.09);
+  border: 1px solid rgba(255, 157, 138, 0.4);
+  border-radius: 11px;
+}
+
+.lg-error::before {
+  content: '✦';
+  flex: none;
+  line-height: 1.45;
+}
+
+/* ───────── Bouton ───────── */
+
+.lg-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 0.4rem;
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #241505;
+  background: linear-gradient(160deg, var(--lg-gold-soft) 0%, var(--lg-gold) 45%, var(--lg-gold-deep) 130%);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow:
+    0 10px 32px rgba(246, 198, 109, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease,
+    filter 0.3s ease;
+}
+
+.lg-btn > * {
+  grid-area: 1 / 1;
+}
+
+.lg-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 46px rgba(246, 198, 109, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.lg-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.lg-btn:disabled {
+  cursor: progress;
+  filter: saturate(0.85);
+}
+
+.lg-btn-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120px 90px at var(--lg-mx, 50%) var(--lg-my, 50%),
+    rgba(255, 255, 255, 0.5),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  mix-blend-mode: soft-light;
+}
+
+.lg-btn:hover:not(:disabled) .lg-btn-glow {
+  opacity: 1;
+}
+
+.lg-btn-sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 44%;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.55) 50%, transparent);
+  transform: translateX(-160%) skewX(-16deg);
+}
+
+.lg-btn:hover:not(:disabled) .lg-btn-sheen {
+  animation: lg-sheen 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes lg-sheen {
+  to {
+    transform: translateX(320%) skewX(-16deg);
+  }
+}
+
+.lg-btn-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.lg-orbit {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.lg-orbit i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #241505;
+  animation: lg-bounce 1s ease-in-out infinite;
+}
+
+.lg-orbit i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.lg-orbit i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes lg-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+/* ───────── Pied de page ───────── */
+
+.lg-footer {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  padding: 1rem 1.5rem 1.5rem;
+  text-align: center;
+  font-family: var(--lg-font-mono);
+  font-size: 0.68rem;
+  line-height: 1.6;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lg-dim-text);
+}
+
+.lg-footer .lg-sep {
+  color: var(--lg-gold);
+  margin: 0 0.7em;
+}
+
+/* ───────── Focus clavier ───────── */
+
+.lg-root a:focus-visible,
+.lg-root button:focus-visible {
+  outline: 2px solid var(--lg-gold-soft);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* ───────── Entrée orchestrée ───────── */
+
+.lg-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  filter: blur(8px);
+  transition:
+    opacity 0.9s ease,
+    transform 1s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.9s ease;
+}
+
+.lg-ready .lg-reveal {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.lg-d1 { transition-delay: 0.1s; }
+.lg-d2 { transition-delay: 0.22s; }
+.lg-d3 { transition-delay: 0.36s; }
+.lg-d4 { transition-delay: 0.5s; }
+.lg-d5 { transition-delay: 0.64s; }
+.lg-d6 { transition-delay: 0.78s; }
+.lg-d7 { transition-delay: 0.92s; }
+
+/* ───────── Responsive ───────── */
+
+@media (max-width: 959px) {
+  .lg-stage {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: clamp(1.4rem, 4vh, 2.6rem);
+    padding-top: clamp(1.75rem, 6vh, 4rem);
+  }
+
+  .lg-brand {
+    max-width: none;
+    text-align: center;
+  }
+
+  .lg-eyebrow {
+    justify-content: center;
+  }
+
+  .lg-eyebrow::before {
+    display: none;
+  }
+
+  .lg-tagline {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .lg-facts {
+    justify-content: center;
+  }
+
+  .lg-facts li {
+    align-items: center;
+  }
+
+  .lg-panel {
+    margin: 0 auto;
+  }
+}
+
+/* Sur téléphone la marque se compacte : le formulaire doit rester à portée
+   de pouce, sans défilement sur un écran de 740 px de haut. */
+@media (max-width: 600px) {
+  .lg-wordmark {
+    margin-top: 0.2em;
+    font-size: clamp(2.6rem, 12vw, 3.4rem);
+  }
+
+  .lg-tagline {
+    margin-top: 0.7em;
+    font-size: 1rem;
+  }
+
+  .lg-facts {
+    gap: 0.3rem 1.1rem;
+    margin-top: 1.1rem;
+  }
+
+  .lg-facts li {
+    flex-direction: row;
+    align-items: baseline;
+  }
+
+  .lg-fact {
+    font-size: 0.88rem;
+  }
+
+  /* Les intitulés secondaires disparaissent : les trois mots suffisent. */
+  .lg-fact-lbl {
+    display: none;
+  }
+
+  .lg-footer {
+    padding: 0.75rem 1rem 1.25rem;
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (max-width: 420px) {
+  .lg-stage {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .lg-eyebrow {
+    letter-spacing: 0.18em;
+  }
+
+  .lg-card {
+    padding: 1.4rem 1.15rem;
+  }
+}
+
+/* Très grands écrans : les clamp() plafonnent, on remonte la typographie et
+   la carte pour que la page ne se perde pas au milieu du vide. */
+@media (min-width: 2200px) {
+  .lg-stage {
+    max-width: 2100px;
+    gap: 8rem;
+  }
+
+  .lg-brand {
+    max-width: 42rem;
+  }
+
+  .lg-wordmark {
+    font-size: 7.5rem;
+  }
+
+  .lg-eyebrow {
+    font-size: 0.9rem;
+  }
+
+  .lg-tagline {
+    font-size: 1.7rem;
+  }
+
+  .lg-fact {
+    font-size: 1.5rem;
+  }
+
+  .lg-fact-lbl,
+  .lg-hint,
+  .lg-footer {
+    font-size: 0.84rem;
+  }
+
+  .lg-panel {
+    width: min(34rem, 100%);
+  }
+
+  .lg-card {
+    padding: 3rem;
+    border-radius: 26px;
+  }
+
+  .lg-title {
+    font-size: 2.6rem;
+  }
+
+  .lg-lead {
+    font-size: 1.2rem;
+  }
+
+  .lg-field label {
+    font-size: 0.95rem;
+  }
+
+  .lg-control input {
+    min-height: 62px;
+    font-size: 1.15rem;
+  }
+
+  .lg-btn {
+    min-height: 66px;
+    font-size: 1.2rem;
+  }
+}
+
+/* ───────── Mouvement réduit ───────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-root *,
+  .lg-root *::before,
+  .lg-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .lg-reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .lg-sky {
+    opacity: 1;
+  }
+
+  .lg-card {
+    transform: none;
+  }
+}
