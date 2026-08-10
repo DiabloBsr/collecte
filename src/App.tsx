@@ -408,9 +408,12 @@ export default function App() {
     )
   }
 
-  // Un non-admin qui tape #/admin (ou #/profil sans compte) retombe sur Questions.
+  // Un non-admin qui tape #/admin (ou #/profil sans compte) retombe sur
+  // Questions. En dev local sans cloud, la page Admin reste visitable pour
+  // tester sa mise en page (l'API renverra une erreur, sans conséquence).
+  const adminVisible = isAdmin || (import.meta.env.DEV && !cloudEnabled)
   const page: Route =
-    (route === 'admin' && !isAdmin) ||
+    (route === 'admin' && !adminVisible) ||
     (route === 'profil' && !(cloudEnabled && userEmail))
       ? 'questions'
       : route

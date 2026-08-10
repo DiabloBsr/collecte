@@ -19,12 +19,63 @@ interface QuestionValues {
   required: boolean
 }
 
-const TYPE_CHOICES: { id: QuestionType; glyph: string; hint: string }[] = [
-  { id: 'text', glyph: 'Aa', hint: 'Réponse libre, input simple' },
-  { id: 'number', glyph: '123', hint: 'Valeur numérique (âge, quantité…)' },
-  { id: 'radio', glyph: '◉', hint: 'Une seule option possible' },
-  { id: 'checkbox', glyph: '▣', hint: 'Plusieurs options possibles' },
+const TYPE_CHOICES: { id: QuestionType; hint: string }[] = [
+  { id: 'text', hint: 'Réponse libre, input simple' },
+  { id: 'number', hint: 'Valeur numérique (âge, quantité…)' },
+  { id: 'radio', hint: 'Une seule option possible' },
+  { id: 'checkbox', hint: 'Plusieurs options possibles' },
 ]
+
+export function TypeIcon({ type, size = 16 }: { type: QuestionType; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
+  switch (type) {
+    case 'text':
+      // Lignes de texte
+      return (
+        <svg {...common}>
+          <path d="M4 6h16" />
+          <path d="M4 12h10" />
+          <path d="M4 18h13" />
+        </svg>
+      )
+    case 'number':
+      // Dièse
+      return (
+        <svg {...common}>
+          <path d="M9.5 4 7.5 20" />
+          <path d="M16.5 4l-2 16" />
+          <path d="M4 9.5h16" />
+          <path d="M4 15.5h16" />
+        </svg>
+      )
+    case 'radio':
+      // Bouton radio sélectionné
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none" />
+        </svg>
+      )
+    case 'checkbox':
+      // Case cochée
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="16" height="16" rx="4.5" />
+          <path d="m8.4 12.3 2.5 2.5 4.9-5.2" />
+        </svg>
+      )
+  }
+}
 
 const SECTION_CHOICES: { id: QuestionSection; hint: string }[] = [
   {
@@ -256,7 +307,7 @@ function QuestionForm({
               onClick={() => setType(t.id)}
             >
               <span className="seg-glyph" aria-hidden="true">
-                {t.glyph}
+                <TypeIcon type={t.id} />
               </span>
               <span className="seg-text">
                 <span className="seg-name">{TYPE_LABELS[t.id]}</span>
@@ -529,7 +580,7 @@ export default function BuilderPage({
             <div className="q-card-head">
               <span className="q-index">{String(i + 1).padStart(2, '0')}</span>
               <span className={`type-badge t-${q.type}`}>
-                <span className="dot" aria-hidden="true" />
+                <TypeIcon type={q.type} size={11} />
                 {TYPE_LABELS[q.type]}
               </span>
               {q.required && <span className="req-badge">obligatoire</span>}
