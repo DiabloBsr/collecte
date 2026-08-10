@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react'
-import type { AnswerValue, ConfirmFn, Question, Submission } from '../types'
-import { TYPE_LABELS } from '../types'
+import type {
+  AnswerValue,
+  ConfirmFn,
+  Question,
+  Questionnaire,
+  Submission,
+} from '../types'
+import { TYPE_LABELS, isChoiceType } from '../types'
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', {
   dateStyle: 'medium',
@@ -16,6 +22,95 @@ function formatValue(v: AnswerValue | undefined): string {
   if (v === undefined) return '—'
   if (Array.isArray(v)) return v.length > 0 ? v.join(', ') : '—'
   return v.trim() === '' ? '—' : v
+}
+
+function collectorLabel(s: Submission): string {
+  return s.collectorName || s.collectorEmail || '(non signé)'
+}
+
+function matchesOption(v: AnswerValue | undefined, option: string): boolean {
+  return Array.isArray(v) ? v.includes(option) : v === option
+}
+
+interface Insight {
+  strength: number
+  text: string
+}
+
+/** Croise automatiquement les questions analysables et retient les écarts marquants. */
+function computeInsights(questions: Question[], submissions: Submission[]): Insight[] {
+  const MIN_GROUP = 5
+  const insights: Insight[] = []
+  const choice = questions.filter((q) => isChoiceType(q.type))
+  const numeric = questions.filter((q) => q.type === 'number')
+
+  for (const qa of choice) {
+    for (const qb of choice) {
+      if (qa.id === qb.id) continue
+      const total = submissions.filter((s) => hasAnswer(s.answers[qb.id])).length
+      if (total < MIN_GROUP * 2) continue
+      for (const optA of qa.options) {
+        const group = submissions.filter(
+          (s) => matchesOption(s.answers[qa.id], optA) && hasAnswer(s.answers[qb.id]),
+        )
+        if (group.length < MIN_GROUP) continue
+        for (const optB of qb.options) {
+          const inGroup =
+            group.filter((s) => matchesOption(s.answers[qb.id], optB)).length /
+            group.length
+          const overall =
+            submissions.filter((s) => matchesOption(s.answers[qb.id], optB)).length /
+            total
+          const diff = (inGroup - overall) * 100
+          if (Math.abs(diff) >= 15) {
+            insights.push({
+              strength: Math.abs(diff),
+              text: `${Math.round(inGroup * 100)} % des « ${optA} » (${qa.label}) répondent « ${optB} » à « ${qb.label} », contre ${Math.round(overall * 100)} % dans l’ensemble (${diff > 0 ? '+' : ''}${Math.round(diff)} pts).`,
+            })
+          }
+        }
+      }
+    }
+  }
+
+  for (const qn of numeric) {
+    const numOf = (s: Submission) => {
+      const v = s.answers[qn.id]
+      return typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))
+        ? Number(v)
+        : null
+    }
+    const all = submissions.map(numOf).filter((n): n is number => n !== null)
+    if (all.length < MIN_GROUP * 2) continue
+    const avgAll = all.reduce((a, b) => a + b, 0) / all.length
+    for (const qc of choice) {
+      for (const opt of qc.options) {
+        const grp = submissions
+          .filter((s) => matchesOption(s.answers[qc.id], opt))
+          .map(numOf)
+          .filter((n): n is number => n !== null)
+        if (grp.length < MIN_GROUP) continue
+        const avgGrp = grp.reduce((a, b) => a + b, 0) / grp.length
+        const rel = avgAll !== 0 ? ((avgGrp - avgAll) / Math.abs(avgAll)) * 100 : 0
+        if (Math.abs(rel) >= 20) {
+          insights.push({
+            strength: Math.abs(rel),
+            text: `« ${qn.label} » moyen des « ${opt} » (${qc.label}) : ${avgGrp.toFixed(1)}, contre ${avgAll.toFixed(1)} pour l’ensemble (${rel > 0 ? '+' : ''}${Math.round(rel)} %).`,
+          })
+        }
+      }
+    }
+  }
+
+  const seen = new Set<string>()
+  return insights
+    .sort((a, b) => b.strength - a.strength)
+    .filter((i) => {
+      if (seen.has(i.text)) return false
+      seen.add(i.text)
+      return true
+    })
+    .slice(0, 6)
 }
 
 function ChoiceStats({ q, submissions }: { q: Question; submissions: Submission[] }) {
@@ -182,6 +277,44 @@ function TimelineChart({ submissions }: { submissions: Submission[] }) {
   )
 }
 
+function GeoScatter({ points }: { points: Submission[] }) {
+  const W = 560
+  const H = 260
+  const P = 26
+  const lats = points.map((p) => p.lat as number)
+  const lngs = points.map((p) => p.lng as number)
+  const minLat = Math.min(...lats)
+  const maxLat = Math.max(...lats)
+  const minLng = Math.min(...lngs)
+  const maxLng = Math.max(...lngs)
+  const x = (lng: number) =>
+    maxLng === minLng ? W / 2 : P + ((lng - minLng) / (maxLng - minLng)) * (W - 2 * P)
+  const y = (lat: number) =>
+    maxLat === minLat ? H / 2 : H - P - ((lat - minLat) / (maxLat - minLat)) * (H - 2 * P)
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="geo-svg"
+      role="img"
+      aria-label="Répartition géographique des entretiens"
+    >
+      <rect x="0" y="0" width={W} height={H} rx="10" fill="#efe7d4" />
+      {points.map((p) => (
+        <circle
+          key={p.id}
+          cx={x(p.lng as number)}
+          cy={y(p.lat as number)}
+          r="5"
+          fill="#b3441a"
+          fillOpacity="0.75"
+          stroke="#fdfaf2"
+          strokeWidth="1.5"
+        />
+      ))}
+    </svg>
+  )
+}
+
 function NumberStats({ q, submissions }: { q: Question; submissions: Submission[] }) {
   const values = submissions
     .map((s) => s.answers[q.id])
@@ -256,12 +389,14 @@ function TextAnswers({ q, submissions }: { q: Question; submissions: Submission[
 }
 
 export default function DashboardPage({
+  questionnaire,
   questions,
   submissions,
   updateSubmissions,
   notify,
   confirmAction,
 }: {
+  questionnaire: Questionnaire | null
   questions: Question[]
   submissions: Submission[]
   updateSubmissions: (updater: (current: Submission[]) => Submission[]) => boolean
@@ -287,6 +422,33 @@ export default function DashboardPage({
     () => identity.filter((q) => q.type !== 'text'),
     [identity],
   )
+
+  const insights = useMemo(
+    () => computeInsights([...identityStats, ...survey], submissions),
+    [identityStats, survey, submissions],
+  )
+
+  const team = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const s of submissions) {
+      const who = collectorLabel(s)
+      map.set(who, (map.get(who) ?? 0) + 1)
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [submissions])
+
+  const located = useMemo(
+    () =>
+      submissions.filter(
+        (s) => typeof s.lat === 'number' && typeof s.lng === 'number',
+      ),
+    [submissions],
+  )
+
+  const goalPct =
+    questionnaire?.goal && questionnaire.goal > 0
+      ? Math.min(100, Math.round((submissions.length / questionnaire.goal) * 100))
+      : null
 
   async function removeSubmission(s: Submission) {
     const ok = await confirmAction({
@@ -392,7 +554,8 @@ export default function DashboardPage({
 
     const hasGroups = identity.length > 0 && survey.length > 0
     const headerRowIdx = hasGroups ? 2 : 1
-    const totalCols = 1 + ordered.length
+    const EXTRA = ['Enquêteur', 'Latitude', 'Longitude']
+    const totalCols = 1 + ordered.length + EXTRA.length
 
     const ws = wb.addWorksheet('Réponses', {
       views: [{ state: 'frozen', ySplit: headerRowIdx }],
@@ -404,6 +567,9 @@ export default function DashboardPage({
     ws.columns = [
       { key: 'date', width: 19 },
       ...ordered.map((q) => ({ key: q.id, width: columnWidth(q) })),
+      { key: 'collector', width: 24 },
+      { key: 'lat', width: 12 },
+      { key: 'lng', width: 12 },
     ]
 
     const INK = 'FF221A10'
@@ -427,13 +593,22 @@ export default function DashboardPage({
       ws.getCell(1, 1).value = 'Date'
       ws.getCell(1, 2).value = 'Fiche répondant'
       ws.getCell(1, 2 + identity.length).value = 'Questionnaire'
+      EXTRA.forEach((label, i) => {
+        ws.getCell(1, 2 + ordered.length + i).value = label
+        ws.mergeCells(1, 2 + ordered.length + i, 2, 2 + ordered.length + i)
+      })
       ws.mergeCells(1, 1, 2, 1)
       if (identity.length > 1) ws.mergeCells(1, 2, 1, 1 + identity.length)
       if (survey.length > 1)
         ws.mergeCells(1, 2 + identity.length, 1, 1 + identity.length + survey.length)
       for (let c = 1; c <= totalCols; c++) {
         const cell = ws.getCell(1, c)
-        const fill = c === 1 ? INK : c <= 1 + identity.length ? OLIVE : TERRA
+        const fill =
+          c === 1 || c > 1 + ordered.length
+            ? INK
+            : c <= 1 + identity.length
+              ? OLIVE
+              : TERRA
         cell.fill = solid(fill)
         cell.font = { bold: true, color: { argb: WHITE }, size: 11 }
         cell.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -443,7 +618,12 @@ export default function DashboardPage({
     }
 
     const headerRow = ws.getRow(headerRowIdx)
-    if (!hasGroups) headerRow.getCell(1).value = 'Date'
+    if (!hasGroups) {
+      headerRow.getCell(1).value = 'Date'
+      EXTRA.forEach((label, i) => {
+        headerRow.getCell(2 + ordered.length + i).value = label
+      })
+    }
     ordered.forEach((q, i) => {
       headerRow.getCell(2 + i).value = q.label
     })
@@ -482,6 +662,9 @@ export default function DashboardPage({
           values[q.id] = Number(v) // vraie cellule numérique, triable dans Excel
         else values[q.id] = v
       }
+      values.collector = collectorLabel(s)
+      values.lat = s.lat !== undefined ? s.lat : ''
+      values.lng = s.lng !== undefined ? s.lng : ''
       const row = ws.addRow(values)
       row.eachCell({ includeEmpty: true }, (cell) => {
         cell.border = allBorders
@@ -499,6 +682,91 @@ export default function DashboardPage({
     )
   }
 
+  function buildReportHtml(): string {
+    const name = questionnaire?.name ?? 'Enquête'
+    const dates = submissions.map((s) => s.submittedAt)
+    const period =
+      submissions.length > 0
+        ? `${dateFmt.format(Math.min(...dates))} → ${dateFmt.format(Math.max(...dates))}`
+        : '—'
+    const esc = (t: string) =>
+      t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const analysable = [...identityStats, ...survey]
+    let sections = ''
+    for (const q of analysable) {
+      if (isChoiceType(q.type)) {
+        const answered = submissions.filter((s) => hasAnswer(s.answers[q.id])).length
+        let rows = ''
+        for (const opt of q.options) {
+          const count = submissions.filter((s) =>
+            matchesOption(s.answers[q.id], opt),
+          ).length
+          const pct = answered > 0 ? Math.round((count / answered) * 100) : 0
+          rows += `<div class="r"><span class="rl">${esc(opt)}</span><span class="rt"><span class="rf" style="width:${pct}%"></span></span><span class="rv">${count} · ${pct} %</span></div>`
+        }
+        sections += `<section><h3>${esc(q.label)}</h3><p class="meta">${TYPE_LABELS[q.type]} · ${answered}/${submissions.length} réponses</p>${rows}</section>`
+      } else if (q.type === 'number') {
+        const values = submissions
+          .map((s) => {
+            const v = s.answers[q.id]
+            return typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))
+              ? Number(v)
+              : null
+          })
+          .filter((n): n is number => n !== null)
+        if (values.length === 0) continue
+        const avg = values.reduce((a, b) => a + b, 0) / values.length
+        sections += `<section><h3>${esc(q.label)}</h3><p class="meta">Nombre · ${values.length} réponses</p><p class="nums"><b>${avg.toFixed(1)}</b> moyenne · <b>${Math.min(...values)}</b> min · <b>${Math.max(...values)}</b> max</p></section>`
+      }
+    }
+    const insightItems = insights.map((i) => `<li>${esc(i.text)}</li>`).join('')
+    const teamRows = team
+      .map(
+        ([who, n]) =>
+          `<div class="r"><span class="rl">${esc(who)}</span><span class="rv">${n} réponse${n > 1 ? 's' : ''}</span></div>`,
+      )
+      .join('')
+    return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Rapport — ${esc(name)}</title><style>
+body{font-family:Georgia,serif;background:#f5efe3;color:#221a10;margin:0;padding:40px 20px}
+main{max-width:760px;margin:0 auto;background:#fdfaf2;border:1px solid #e0d5bf;border-radius:12px;padding:40px 44px}
+h1{font-size:30px;margin:0 0 4px}h2{font-size:20px;border-bottom:1px solid #c8b998;padding-bottom:6px;margin:34px 0 14px}
+h3{font-size:16px;margin:22px 0 2px}.k{color:#8a3312;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:monospace}
+.meta{color:#6f6350;font-size:12px;font-family:monospace;margin:0 0 8px}.nums{font-size:15px}
+.r{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:13.5px}.rl{min-width:160px;color:#6f6350}
+.rt{flex:1;height:12px;background:#efe7d4;border-radius:0 4px 4px 0;border-left:2px solid #c8b998;overflow:hidden}
+.rf{display:block;height:100%;background:linear-gradient(90deg,#b3441a,#8a3312);border-radius:0 4px 4px 0}
+.rv{font-family:monospace;font-size:12px;min-width:76px;text-align:right}
+ul{padding-left:20px}li{margin:8px 0}
+footer{margin-top:36px;color:#9c8d75;font-size:11px;font-family:monospace;text-align:center}
+@media print{body{background:#fff;padding:0}main{border:none}}
+</style></head><body><main>
+<p class="k">Rapport d’enquête</p><h1>${esc(name)}</h1>
+<p class="meta">Généré le ${dateFmt.format(Date.now())}</p>
+<h2>Échantillon</h2>
+<div class="r"><span class="rl">Réponses collectées</span><span class="rv">${submissions.length}</span></div>
+<div class="r"><span class="rl">Période de collecte</span><span class="rv" style="min-width:auto">${period}</span></div>
+${questionnaire?.goal ? `<div class="r"><span class="rl">Objectif</span><span class="rv">${submissions.length}/${questionnaire.goal} (${goalPct} %)</span></div>` : ''}
+${located.length > 0 ? `<div class="r"><span class="rl">Entretiens géolocalisés</span><span class="rv">${located.length}</span></div>` : ''}
+${teamRows ? `<h2>Équipe de collecte</h2>${teamRows}` : ''}
+${insightItems ? `<h2>Ce qui ressort</h2><ul>${insightItems}</ul>` : ''}
+<h2>Résultats par question</h2>${sections}
+<footer>Généré par Collecte — Ctrl+P pour l’enregistrer en PDF</footer>
+</main></body></html>`
+  }
+
+  function exportReport() {
+    const slug = (questionnaire?.name ?? 'enquete')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+    download(
+      `rapport-${slug}-${stamp}.html`,
+      buildReportHtml(),
+      'text/html;charset=utf-8',
+    )
+    notify('Rapport généré — ouvrez-le puis Ctrl+P pour un PDF')
+  }
+
   function csvCell(s: string): string {
     // Neutralise l'injection de formule tableur (=, +, -, @, tab) avant le quoting.
     const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
@@ -506,16 +774,25 @@ export default function DashboardPage({
   }
 
   function exportCsv() {
-    const header = ['Date', ...ordered.map((q) => q.label)]
+    const header = [
+      'Date',
+      'Enquêteur',
+      ...ordered.map((q) => q.label),
+      'Latitude',
+      'Longitude',
+    ]
     const lines = [header.map(csvCell).join(';')]
     for (const s of submissions) {
       const row = [
         dateFmt.format(s.submittedAt),
+        collectorLabel(s),
         ...ordered.map((q) => {
           const v = s.answers[q.id]
           if (v === undefined) return ''
           return Array.isArray(v) ? v.join(' | ') : v
         }),
+        s.lat !== undefined ? String(s.lat) : '',
+        s.lng !== undefined ? String(s.lng) : '',
       ]
       lines.push(row.map(csvCell).join(';'))
     }
@@ -551,6 +828,14 @@ export default function DashboardPage({
           </span>
           <span className="stat-label">Dernière réponse</span>
         </div>
+        {goalPct !== null && questionnaire?.goal && (
+          <div className={goalPct >= 100 ? 'stat accent' : 'stat'}>
+            <span className="stat-value">{goalPct} %</span>
+            <span className="stat-label">
+              Objectif · {submissions.length}/{questionnaire.goal}
+            </span>
+          </div>
+        )}
       </div>
 
       {submissions.length === 0 ? (
@@ -571,6 +856,9 @@ export default function DashboardPage({
       ) : (
         <>
           <div className="toolbar">
+            <button className="btn primary" onClick={exportReport}>
+              Générer le rapport
+            </button>
             <button className="btn ghost" onClick={() => void exportXlsx()}>
               Exporter en Excel
             </button>
@@ -587,6 +875,20 @@ export default function DashboardPage({
           </div>
 
           <TimelineChart submissions={submissions} />
+
+          {insights.length > 0 && (
+            <div className="card insights-card">
+              <div className="qstat-head">
+                <h3 className="qstat-title">Ce qui ressort de vos données</h3>
+                <span className="qstat-meta">croisements automatiques</span>
+              </div>
+              <ul className="insights-list">
+                {insights.map((i) => (
+                  <li key={i.text}>{i.text}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {identityStats.length > 0 && (
             <>
@@ -606,12 +908,70 @@ export default function DashboardPage({
             </>
           )}
 
+          {(team.length > 1 || (team.length === 1 && team[0][0] !== '(non signé)')) && (
+            <>
+              <h2 className="section-title">Équipe de collecte</h2>
+              <div className="card qstat">
+                <div className="bars">
+                  {team.map(([who, n]) => {
+                    const max = team[0][1]
+                    const pct = Math.round((n / submissions.length) * 100)
+                    return (
+                      <div key={who} className="bar-row" title={`${who} : ${n}`}>
+                        <span className="bar-label">{who}</span>
+                        <span className="bar-track">
+                          <span
+                            className="bar-fill"
+                            style={{ width: `${(n / max) * 100}%` }}
+                          />
+                        </span>
+                        <span className="bar-value">
+                          {n}
+                          <span className="bar-pct"> · {pct} %</span>
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {located.length > 0 && (
+            <>
+              <h2 className="section-title">Localisation</h2>
+              <div className="card qstat">
+                <div className="qstat-head">
+                  <h3 className="qstat-title">Lieux d’entretien</h3>
+                  <span className="qstat-meta">
+                    {located.length}/{submissions.length} géolocalisés
+                  </span>
+                </div>
+                <GeoScatter points={located} />
+                <p className="geo-links">
+                  {located.slice(-8).map((s) => (
+                    <a
+                      key={s.id}
+                      href={`https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lng}#map=16/${s.lat}/${s.lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="geo-link"
+                    >
+                      {dateFmt.format(s.submittedAt)} ↗
+                    </a>
+                  ))}
+                </p>
+              </div>
+            </>
+          )}
+
           <h2 className="section-title">Données brutes</h2>
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
                   <th scope="col">Date</th>
+                  <th scope="col">Enquêteur</th>
                   {ordered.map((q) => (
                     <th key={q.id} scope="col" title={q.label}>
                       {q.label}
@@ -626,6 +986,9 @@ export default function DashboardPage({
                 {latestFirst.map((s) => (
                   <tr key={s.id}>
                     <td className="td-date">{dateFmt.format(s.submittedAt)}</td>
+                    <td className="td-date" title={s.collectorEmail ?? ''}>
+                      {collectorLabel(s)}
+                    </td>
                     {ordered.map((q) => {
                       const text = formatValue(s.answers[q.id])
                       return (

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AnswerValue, Question, Submission } from '../types'
 import { isChoiceType } from '../types'
@@ -11,17 +11,38 @@ export default function CollectPage({
   submissions,
   updateSubmissions,
   notify,
+  collectorEmail,
+  collectorName,
 }: {
   questions: Question[]
   submissions: Submission[]
   updateSubmissions: (updater: (current: Submission[]) => Submission[]) => boolean
   notify: (message: string) => void
+  collectorEmail: string | null
+  collectorName: string | null
 }) {
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({})
   const [errors, setErrors] = useState<Record<string, boolean>>({})
   const [step, setStep] = useState<Step>('infos')
   // Position de lecture du questionnaire, restaurée quand on revient de l'étape 1.
   const savedScroll = useRef(0)
+  // Position GPS du lieu d'entretien, capturée en arrière-plan (jamais bloquant :
+  // refus de permission ou échec = simplement pas de coordonnées).
+  const gps = useRef<{ lat: number; lng: number } | null>(null)
+
+  useEffect(() => {
+    if (questions.length === 0 || !('geolocation' in navigator)) return
+    const watch = navigator.geolocation.watchPosition(
+      (pos) => {
+        gps.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+      },
+      () => {
+        gps.current = null
+      },
+      { enableHighAccuracy: false, maximumAge: 120000, timeout: 15000 },
+    )
+    return () => navigator.geolocation.clearWatch(watch)
+  }, [questions.length])
 
   const identity = useMemo(
     () => questions.filter((q) => q.section === 'identity'),
@@ -138,7 +159,16 @@ export default function CollectPage({
       notify('Réponse vide — rien à enregistrer.')
       return
     }
-    const submission: Submission = { id: uid(), submittedAt: Date.now(), answers: clean }
+    const submission: Submission = {
+      id: uid(),
+      submittedAt: Date.now(),
+      answers: clean,
+      questionnaireId: '', // estampillé par l'updater scopé
+      collectorEmail: collectorEmail ?? undefined,
+      collectorName: collectorName ?? undefined,
+      lat: gps.current?.lat,
+      lng: gps.current?.lng,
+    }
     const ok = updateSubmissions((current) => [...current, submission])
     setAnswers({})
     setErrors({})

@@ -1,8 +1,11 @@
-import type { IdentityPreset, Question, Submission } from './types'
+import type { IdentityPreset, Question, Questionnaire, Submission } from './types'
+import { DEFAULT_QUESTIONNAIRE_ID } from './types'
 
 export const QUESTIONS_KEY = 'collecte.questions.v1'
 export const SUBMISSIONS_KEY = 'collecte.submissions.v1'
 export const PRESETS_KEY = 'collecte.presets.v1'
+export const QUESTIONNAIRES_KEY = 'collecte.questionnaires.v1'
+const CURRENT_QUESTIONNAIRE_KEY = 'collecte.currentQuestionnaire.v1'
 const PENDING_KEY = 'collecte.pending.v1'
 
 function read<T>(key: string, fallback: T): T {
@@ -29,10 +32,14 @@ function write(key: string, value: unknown): boolean {
 export function loadQuestions(): Question[] {
   const list = read<Question[]>(QUESTIONS_KEY, [])
   if (!Array.isArray(list)) return []
-  // Migration : les questions créées avant l'ajout des sections vont au questionnaire.
+  // Migrations : sections (v1) et rattachement au questionnaire (v2).
   return list.map((q) => ({
     ...q,
     section: q.section === 'identity' ? 'identity' : 'survey',
+    questionnaireId:
+      typeof q.questionnaireId === 'string' && q.questionnaireId
+        ? q.questionnaireId
+        : DEFAULT_QUESTIONNAIRE_ID,
   }))
 }
 
@@ -42,11 +49,54 @@ export function saveQuestions(questions: Question[]): boolean {
 
 export function loadSubmissions(): Submission[] {
   const list = read<Submission[]>(SUBMISSIONS_KEY, [])
-  return Array.isArray(list) ? list : []
+  if (!Array.isArray(list)) return []
+  return list.map((s) => ({
+    ...s,
+    questionnaireId:
+      typeof s.questionnaireId === 'string' && s.questionnaireId
+        ? s.questionnaireId
+        : DEFAULT_QUESTIONNAIRE_ID,
+  }))
 }
 
 export function saveSubmissions(submissions: Submission[]): boolean {
   return write(SUBMISSIONS_KEY, submissions)
+}
+
+export function loadQuestionnaires(): Questionnaire[] {
+  const list = read<Questionnaire[]>(QUESTIONNAIRES_KEY, [])
+  const cleaned = Array.isArray(list)
+    ? list.filter((q) => q && typeof q.id === 'string' && typeof q.name === 'string')
+    : []
+  if (cleaned.length === 0) {
+    return [
+      {
+        id: DEFAULT_QUESTIONNAIRE_ID,
+        name: 'Enquête 1',
+        goal: null,
+        createdAt: Date.now(),
+      },
+    ]
+  }
+  return cleaned.map((q) => ({
+    id: q.id,
+    name: q.name,
+    goal: typeof q.goal === 'number' ? q.goal : null,
+    createdAt: typeof q.createdAt === 'number' ? q.createdAt : Date.now(),
+  }))
+}
+
+export function saveQuestionnaires(questionnaires: Questionnaire[]): boolean {
+  return write(QUESTIONNAIRES_KEY, questionnaires)
+}
+
+export function loadCurrentQuestionnaireId(): string {
+  const id = read<string>(CURRENT_QUESTIONNAIRE_KEY, DEFAULT_QUESTIONNAIRE_ID)
+  return typeof id === 'string' && id ? id : DEFAULT_QUESTIONNAIRE_ID
+}
+
+export function saveCurrentQuestionnaireId(id: string): void {
+  write(CURRENT_QUESTIONNAIRE_KEY, id)
 }
 
 export function loadPresets(): IdentityPreset[] {

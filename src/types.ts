@@ -2,6 +2,15 @@ export type QuestionType = 'text' | 'number' | 'radio' | 'checkbox'
 
 export type QuestionSection = 'identity' | 'survey'
 
+export interface Questionnaire {
+  id: string
+  name: string
+  goal: number | null
+  createdAt: number
+}
+
+export const DEFAULT_QUESTIONNAIRE_ID = 'q-default'
+
 export interface Question {
   id: string
   label: string
@@ -10,6 +19,7 @@ export interface Question {
   options: string[]
   required: boolean
   createdAt: number
+  questionnaireId: string
 }
 
 export type AnswerValue = string | string[]
@@ -18,6 +28,11 @@ export interface Submission {
   id: string
   submittedAt: number
   answers: Record<string, AnswerValue>
+  questionnaireId: string
+  collectorEmail?: string
+  collectorName?: string
+  lat?: number
+  lng?: number
 }
 
 export const TYPE_LABELS: Record<QuestionType, string> = {

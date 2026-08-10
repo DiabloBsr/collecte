@@ -14,8 +14,10 @@ import type {
   Question,
   QuestionSection,
   QuestionType,
+  Questionnaire,
   Submission,
 } from './types'
+import { DEFAULT_QUESTIONNAIRE_ID } from './types'
 
 // strip BOM + espaces : une valeur d'env polluée par un caractère invisible
 // (BOM, retour ligne d'un copier-coller) casserait les en-têtes HTTP avec
@@ -203,6 +205,7 @@ interface QuestionRow {
   position: number
   created_at: string
   deleted_at: string | null
+  questionnaire_id: string | null
 }
 
 interface SubmissionRow {
@@ -210,6 +213,28 @@ interface SubmissionRow {
   submitted_at: string
   answers: unknown
   deleted_at: string | null
+  questionnaire_id: string | null
+  collector_email: string | null
+  collector_name: string | null
+  lat: number | null
+  lng: number | null
+}
+
+interface QuestionnaireRow {
+  id: string
+  name: string
+  goal: number | null
+  created_at: string
+  deleted_at: string | null
+}
+
+function toQuestionnaire(r: QuestionnaireRow): Questionnaire {
+  return {
+    id: r.id,
+    name: r.name,
+    goal: typeof r.goal === 'number' ? r.goal : null,
+    createdAt: Date.parse(r.created_at) || Date.now(),
+  }
 }
 
 function toQuestion(r: QuestionRow): Question {
@@ -228,6 +253,7 @@ function toQuestion(r: QuestionRow): Question {
       : [],
     required: Boolean(r.required),
     createdAt: Date.parse(r.created_at) || Date.now(),
+    questionnaireId: r.questionnaire_id || DEFAULT_QUESTIONNAIRE_ID,
   }
 }
 
@@ -245,12 +271,19 @@ function toSubmission(r: SubmissionRow): Submission {
     id: r.id,
     submittedAt: Date.parse(r.submitted_at) || Date.now(),
     answers,
+    questionnaireId: r.questionnaire_id || DEFAULT_QUESTIONNAIRE_ID,
+    collectorEmail: r.collector_email ?? undefined,
+    collectorName: r.collector_name ?? undefined,
+    lat: typeof r.lat === 'number' ? r.lat : undefined,
+    lng: typeof r.lng === 'number' ? r.lng : undefined,
   }
 }
 
 export interface CloudSnapshot {
+  questionnaires: Questionnaire[]
   questions: Question[]
   submissions: Submission[]
+  deletedQuestionnaireIds: string[]
   deletedQuestionIds: string[]
   deletedSubmissionIds: string[]
 }
@@ -260,19 +293,25 @@ export async function pullAll(): Promise<CloudSnapshot | null> {
   if (!cloudEnabled) return null
   try {
     const sb = await client()
-    const [q, s] = await Promise.all([
+    const [qn, q, s] = await Promise.all([
+      sb.from('questionnaires').select('*').order('created_at', { ascending: true }),
       sb.from('questions').select('*').order('position', { ascending: true }),
       sb.from('submissions').select('*').order('submitted_at', { ascending: true }),
     ])
-    if (q.error || s.error) {
-      recordError(q.error?.message ?? s.error?.message ?? 'réponse en erreur')
+    if (qn.error || q.error || s.error) {
+      recordError(
+        qn.error?.message ?? q.error?.message ?? s.error?.message ?? 'réponse en erreur',
+      )
       return null
     }
+    const qnRows = qn.data as QuestionnaireRow[]
     const qRows = q.data as QuestionRow[]
     const sRows = s.data as SubmissionRow[]
     return {
+      questionnaires: qnRows.filter((r) => !r.deleted_at).map(toQuestionnaire),
       questions: qRows.filter((r) => !r.deleted_at).map(toQuestion),
       submissions: sRows.filter((r) => !r.deleted_at).map(toSubmission),
+      deletedQuestionnaireIds: qnRows.filter((r) => r.deleted_at).map((r) => r.id),
       deletedQuestionIds: qRows.filter((r) => r.deleted_at).map((r) => r.id),
       deletedSubmissionIds: sRows.filter((r) => r.deleted_at).map((r) => r.id),
     }
@@ -280,6 +319,48 @@ export async function pullAll(): Promise<CloudSnapshot | null> {
     recordError(e)
     return null
   }
+}
+
+/** Pousse les questionnaires (upsert) + tombstone les retirés. */
+export function pushQuestionnaires(
+  next: Questionnaire[],
+  removedIds: string[],
+): Promise<boolean> {
+  if (!cloudEnabled) return Promise.resolve(false)
+  return serialized(async () => {
+    try {
+      const sb = await client()
+      if (removedIds.length > 0) {
+        const now = new Date().toISOString()
+        const del = await sb.from('questionnaires').upsert(
+          removedIds.map((id) => ({ id, name: '(supprimé)', deleted_at: now })),
+        )
+        if (del.error) {
+          recordError(del.error.message)
+          return false
+        }
+      }
+      if (next.length > 0) {
+        const up = await sb.from('questionnaires').upsert(
+          next.map((qn) => ({
+            id: qn.id,
+            name: qn.name,
+            goal: qn.goal,
+            created_at: new Date(qn.createdAt).toISOString(),
+            deleted_at: null,
+          })),
+        )
+        if (up.error) {
+          recordError(up.error.message)
+          return false
+        }
+      }
+      return true
+    } catch (e) {
+      recordError(e)
+      return false
+    }
+  })
 }
 
 /** Pousse l'état complet des questions (upsert) + tombstone les retirées. */
@@ -316,6 +397,7 @@ export function pushQuestions(next: Question[], removedIds: string[]): Promise<b
             position: i,
             created_at: new Date(q.createdAt).toISOString(),
             deleted_at: null,
+            questionnaire_id: q.questionnaireId,
           })),
         )
         if (up.error) {
@@ -359,6 +441,11 @@ export function pushSubmissions(
             submitted_at: new Date(s.submittedAt).toISOString(),
             answers: s.answers,
             deleted_at: null,
+            questionnaire_id: s.questionnaireId,
+            collector_email: s.collectorEmail ?? null,
+            collector_name: s.collectorName ?? null,
+            lat: s.lat ?? null,
+            lng: s.lng ?? null,
           })),
         )
         if (up.error) {

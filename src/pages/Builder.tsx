@@ -426,7 +426,13 @@ export default function BuilderPage({
   }, [questions, submissions])
 
   function addQuestion(values: QuestionValues) {
-    const question: Question = { id: uid(), createdAt: Date.now(), ...values }
+    // questionnaireId estampillé par l'updater scopé dans App.
+    const question: Question = {
+      id: uid(),
+      createdAt: Date.now(),
+      questionnaireId: '',
+      ...values,
+    }
     if (updateQuestions((current) => [...current, question])) {
       notify(
         values.section === 'identity'
@@ -479,6 +485,7 @@ export default function BuilderPage({
     const question: Question = {
       id: uid(),
       createdAt: Date.now(),
+      questionnaireId: '',
       label: preset.label,
       type: preset.type,
       section: 'identity',

@@ -1,13 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
-import type { ConfirmFn, ConfirmOptions, Question, Submission } from './types'
+import type {
+  ConfirmFn,
+  ConfirmOptions,
+  Question,
+  Questionnaire,
+  Submission,
+} from './types'
+import { DEFAULT_QUESTIONNAIRE_ID } from './types'
 import {
+  QUESTIONNAIRES_KEY,
   QUESTIONS_KEY,
   SUBMISSIONS_KEY,
+  loadCurrentQuestionnaireId,
   loadPending,
+  loadQuestionnaires,
   loadQuestions,
   loadSubmissions,
   savePending,
+  saveCurrentQuestionnaireId,
+  saveQuestionnaires,
   saveQuestions,
   saveSubmissions,
 } from './storage'
@@ -19,6 +31,7 @@ import {
   onAuthChange,
   onRemoteChange,
   pullAll,
+  pushQuestionnaires,
   pushQuestions,
   pushSubmissions,
   signOut,
@@ -27,6 +40,7 @@ import {
 import LoginPage from './pages/Login'
 import AdminPage from './pages/Admin'
 import ProfilePage from './pages/Profile'
+import QuestionnaireBar from './components/QuestionnaireBar'
 import BuilderPage from './pages/Builder'
 import CollectPage from './pages/Collect'
 import DashboardPage from './pages/Dashboard'
@@ -58,6 +72,8 @@ export default function App() {
   const [route, setRoute] = useState<Route>(routeFromHash)
   const [questions, setQuestions] = useState<Question[]>(loadQuestions)
   const [submissions, setSubmissions] = useState<Submission[]>(loadSubmissions)
+  const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>(loadQuestionnaires)
+  const [currentQid, setCurrentQid] = useState<string>(loadCurrentQuestionnaireId)
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<number | undefined>(undefined)
   const mainRef = useRef<HTMLElement>(null)
@@ -173,6 +189,28 @@ export default function App() {
       }
       let ok = true
 
+      // Questionnaires : fusion par id, comme le reste.
+      const deletedQn = new Set(remote.deletedQuestionnaireIds)
+      const localQn = loadQuestionnaires()
+      const remoteQnIds = new Set(remote.questionnaires.map((x) => x.id))
+      const localOnlyQn = localQn.filter(
+        (x) => !remoteQnIds.has(x.id) && !deletedQn.has(x.id),
+      )
+      const mergedQn = [...remote.questionnaires, ...localOnlyQn]
+      if (mergedQn.length > 0) {
+        setQuestionnaires(mergedQn)
+        saveQuestionnaires(mergedQn)
+        if (localOnlyQn.length > 0) {
+          ok = (await pushQuestionnaires(mergedQn, [])) && ok
+        }
+        const curId = loadCurrentQuestionnaireId()
+        if (!mergedQn.some((x) => x.id === curId)) {
+          const fallback = mergedQn[0].id
+          setCurrentQid(fallback)
+          saveCurrentQuestionnaireId(fallback)
+        }
+      }
+
       // Questions : pour un même id la base fait foi ; une question locale
       // inconnue et non tombstonée est conservée puis semée dans la base.
       const deletedQ = new Set(remote.deletedQuestionIds)
@@ -263,6 +301,9 @@ export default function App() {
     const onStorage = (e: StorageEvent) => {
       if (e.key === null || e.key === QUESTIONS_KEY) setQuestions(loadQuestions())
       if (e.key === null || e.key === SUBMISSIONS_KEY) setSubmissions(loadSubmissions())
+      if (e.key === null || e.key === QUESTIONNAIRES_KEY) {
+        setQuestionnaires(loadQuestionnaires())
+      }
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -371,6 +412,29 @@ export default function App() {
   // pas écraser ce qu'un autre onglet a enregistré entre-temps, et renvoient
   // false (avec avertissement) si la persistance échoue — l'état mémoire, lui,
   // reste à jour pour permettre l'export depuis la page Données.
+  const updateQuestionnaires = useCallback(
+    (updater: (current: Questionnaire[]) => Questionnaire[]) => {
+      const current = loadQuestionnaires()
+      const next = updater(current)
+      setQuestionnaires(next)
+      const ok = saveQuestionnaires(next)
+      if (!ok) {
+        notify('⚠ Stockage local plein ou indisponible : modification non enregistrée.')
+      }
+      if (cloudEnabled) {
+        const removed = current
+          .filter((x) => !next.some((n) => n.id === x.id))
+          .map((x) => x.id)
+        setCloud('syncing')
+        void pushQuestionnaires(next, removed).then((sent) =>
+          setCloud(sent ? 'online' : 'error'),
+        )
+      }
+      return ok
+    },
+    [notify],
+  )
+
   const updateQuestions = useCallback(
     (updater: (current: Question[]) => Question[]) => {
       const current = loadQuestions()
@@ -456,6 +520,45 @@ export default function App() {
         <LoginPage />
       </div>
     )
+  }
+
+  // ── Enquête courante et vues scopées ──
+  const currentQuestionnaire =
+    questionnaires.find((q) => q.id === currentQid) ?? questionnaires[0] ?? null
+  const activeQid = currentQuestionnaire?.id ?? DEFAULT_QUESTIONNAIRE_ID
+  const activeQidRef = useRef(activeQid)
+  activeQidRef.current = activeQid
+
+  const scopedQuestions = questions.filter((q) => q.questionnaireId === activeQid)
+  const scopedSubmissions = submissions.filter((s) => s.questionnaireId === activeQid)
+
+  const updateQuestionsScoped = useCallback(
+    (updater: (current: Question[]) => Question[]) =>
+      updateQuestions((all) => {
+        const qid = activeQidRef.current
+        const mine = all.filter((q) => q.questionnaireId === qid)
+        const others = all.filter((q) => q.questionnaireId !== qid)
+        const next = updater(mine).map((q) => ({ ...q, questionnaireId: qid }))
+        return [...others, ...next]
+      }),
+    [updateQuestions],
+  )
+
+  const updateSubmissionsScoped = useCallback(
+    (updater: (current: Submission[]) => Submission[]) =>
+      updateSubmissions((all) => {
+        const qid = activeQidRef.current
+        const mine = all.filter((s) => s.questionnaireId === qid)
+        const others = all.filter((s) => s.questionnaireId !== qid)
+        const next = updater(mine).map((s) => ({ ...s, questionnaireId: qid }))
+        return [...others, ...next]
+      }),
+    [updateSubmissions],
+  )
+
+  function selectQuestionnaire(id: string) {
+    setCurrentQid(id)
+    saveCurrentQuestionnaireId(id)
   }
 
   // Un non-admin qui tape #/admin (ou #/profil sans compte) retombe sur
@@ -566,29 +669,44 @@ export default function App() {
         </div>
       </header>
 
-      <main className="page" key={page} ref={mainRef}>
+      {(page === 'questions' || page === 'formulaire' || page === 'donnees') && (
+        <QuestionnaireBar
+          questionnaires={questionnaires}
+          current={currentQuestionnaire}
+          count={scopedSubmissions.length}
+          onSelect={selectQuestionnaire}
+          updateQuestionnaires={updateQuestionnaires}
+          notify={notify}
+          confirmAction={confirmAction}
+        />
+      )}
+
+      <main className="page" key={page + activeQid} ref={mainRef}>
         {page === 'questions' && (
           <BuilderPage
-            questions={questions}
-            submissions={submissions}
-            updateQuestions={updateQuestions}
+            questions={scopedQuestions}
+            submissions={scopedSubmissions}
+            updateQuestions={updateQuestionsScoped}
             notify={notify}
             confirmAction={confirmAction}
           />
         )}
         {page === 'formulaire' && (
           <CollectPage
-            questions={questions}
-            submissions={submissions}
-            updateSubmissions={updateSubmissions}
+            questions={scopedQuestions}
+            submissions={scopedSubmissions}
+            updateSubmissions={updateSubmissionsScoped}
             notify={notify}
+            collectorEmail={userEmail}
+            collectorName={displayName || null}
           />
         )}
         {page === 'donnees' && (
           <DashboardPage
-            questions={questions}
-            submissions={submissions}
-            updateSubmissions={updateSubmissions}
+            questionnaire={currentQuestionnaire}
+            questions={scopedQuestions}
+            submissions={scopedSubmissions}
+            updateSubmissions={updateSubmissionsScoped}
             notify={notify}
             confirmAction={confirmAction}
           />

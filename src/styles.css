@@ -198,6 +198,76 @@ body {
   padding: 28px 24px 64px;
 }
 
+/* ————— Barre d'enquête ————— */
+
+.qn-bar {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 24px 0;
+}
+
+.qn-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.qn-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+}
+
+.q-select {
+  font: inherit;
+  font-weight: 600;
+  padding: 7px 30px 7px 12px;
+  border: 1px solid var(--ink-3);
+  border-radius: 8px;
+  background: #fffefb;
+  color: var(--ink);
+  cursor: pointer;
+  max-width: min(300px, 60vw);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236f6350' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+}
+
+.qn-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.qn-goal-track {
+  width: 90px;
+  height: 7px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.qn-goal-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+  border-radius: 999px;
+}
+
+.qn-form {
+  margin-top: 12px;
+  padding: 16px 18px;
+  max-width: 440px;
+}
+
 /* ————— Connexion ————— */
 
 .login-wrap {
@@ -1480,15 +1550,49 @@ input[type='radio']:focus-visible {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 14px;
   margin-bottom: 26px;
 }
 
-@media (max-width: 720px) {
-  .stats {
-    grid-template-columns: 1fr;
-  }
+.insights-card {
+  padding: 16px 20px 14px;
+  margin-bottom: 26px;
+  border-left: 3px solid var(--accent);
+}
+
+.insights-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.insights-list li {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.insights-list li::marker {
+  color: var(--accent);
+}
+
+.geo-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 4px;
+}
+
+.geo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 10px 0 0;
+}
+
+.geo-link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-deep);
 }
 
 .stat {
@@ -1790,6 +1894,8 @@ input[type='radio']:focus-visible {
 
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -1913,6 +2019,7 @@ input[type='radio']:focus-visible {
   font-weight: 600;
   letter-spacing: -0.01em;
   margin: 0 0 10px;
+  overflow-wrap: anywhere; /* un email long ne doit pas élargir le panneau */
 }
 
 .confirm-message {
@@ -1921,6 +2028,7 @@ input[type='radio']:focus-visible {
   white-space: pre-line;
   font-size: 14.5px;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .confirm-actions {
