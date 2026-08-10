@@ -401,9 +401,8 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="topbar" aria-hidden="true" />
-
       <header className="masthead-bar">
+        <div className="topbar" aria-hidden="true" />
         <div className="masthead">
         <div className="brand">
           <a href="#/questions" className="brand-name">

@@ -897,7 +897,7 @@ input[type='radio']:focus-visible {
 
 .builder-aside {
   position: sticky;
-  top: 76px;
+  top: 82px;
 }
 
 @media (max-width: 940px) {
