@@ -22,6 +22,7 @@ import {
   pushQuestions,
   pushSubmissions,
   signOut,
+  verifySession,
 } from './cloud'
 import LoginPage from './pages/Login'
 import AdminPage from './pages/Admin'
@@ -138,6 +139,9 @@ export default function App() {
     syncRunning.current = true
     setCloud('syncing')
     try {
+      // Session expirée/révoquée ? On s'arrête là : verifySession a purgé la
+      // session et l'app bascule d'elle-même sur l'écran de connexion.
+      if (!(await verifySession())) return
       const pending = loadPending()
       if (pending.questionsSeq > pending.questionsPushedSeq) {
         const seq = pending.questionsSeq
@@ -213,6 +217,29 @@ export default function App() {
   useEffect(() => {
     if (auth === 'signedin') void runCloudSync()
   }, [auth, runCloudSync])
+
+  // Retour au premier plan (réveil du téléphone, changement d'onglet) : on
+  // revalide la session côté serveur — morte → écran de connexion ; vivante →
+  // resynchronisation. Throttlé à 30 s.
+  useEffect(() => {
+    if (!cloudEnabled) return
+    let lastCheck = 0
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      const now = Date.now()
+      if (now - lastCheck < 30000) return
+      lastCheck = now
+      void verifySession().then((ok) => {
+        if (ok) void runCloudSync()
+      })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [runCloudSync])
 
   // Temps réel : un changement poussé par un autre appareil relance la
   // synchronisation (débouncé — nos propres pushes déclenchent aussi l'événement,

@@ -120,6 +120,30 @@ export async function updateProfile(
   }
 }
 
+/**
+ * Vérifie côté SERVEUR que la session est encore valable. Retourne false et
+ * purge la session (→ l'app repasse à l'écran de connexion via onAuthChange)
+ * si elle est expirée/révoquée. Une simple erreur réseau est tolérée (true) :
+ * hors ligne, on continue de travailler en local.
+ */
+export async function verifySession(): Promise<boolean> {
+  if (!cloudEnabled) return true
+  try {
+    const sb = await client()
+    const { data } = await sb.auth.getSession()
+    if (!data.session) return true // pas connecté : le gate de l'app gère déjà
+    const { error } = await sb.auth.getUser()
+    if (!error) return true
+    if (/jwt|token|session|invalid|expired|user.*not.*found/i.test(error.message)) {
+      await sb.auth.signOut()
+      return false
+    }
+    return true
+  } catch {
+    return true
+  }
+}
+
 export async function signOut(): Promise<void> {
   if (!cloudEnabled) return
   try {
