@@ -2242,6 +2242,60 @@ input[type='radio']:focus-visible {
   animation: toast-in 0.25s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
+/* ————— Écran d'erreur (dernier rempart) ————— */
+
+.crash-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.crash-brand {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 640;
+  margin: 0;
+}
+
+.crash-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 560;
+  margin: 0;
+}
+
+.crash-text {
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.crash-detail {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.crash-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
