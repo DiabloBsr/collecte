@@ -3,6 +3,15 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  server: {
+    // En dev, la page Admin appelle les fonctions serveur du déploiement.
+    proxy: {
+      '/api': {
+        target: 'https://collecte-taupe.vercel.app',
+        changeOrigin: true,
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

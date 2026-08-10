@@ -17,8 +17,17 @@ import type {
   Submission,
 } from './types'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY as string | undefined
+// strip BOM + espaces : une valeur d'env polluée par un caractère invisible
+// (BOM, retour ligne d'un copier-coller) casserait les en-têtes HTTP avec
+// « String contains non ISO-8859-1 code point ».
+function cleanEnv(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const cleaned = value.replace(new RegExp('^' + String.fromCharCode(0xfeff)), '').trim()
+  return cleaned || undefined
+}
+
+const SUPABASE_URL = cleanEnv(import.meta.env.VITE_SUPABASE_URL)
+const SUPABASE_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_KEY)
 
 export const cloudEnabled = Boolean(SUPABASE_URL && SUPABASE_KEY)
 
@@ -74,6 +83,18 @@ export async function signIn(email: string, password: string): Promise<string | 
   } catch (e) {
     recordError(e)
     return 'Connexion impossible — vérifiez le réseau.'
+  }
+}
+
+/** Jeton d'accès de la session courante (pour appeler l'API admin). */
+export async function getAccessToken(): Promise<string | null> {
+  if (!cloudEnabled) return null
+  try {
+    const sb = await client()
+    const { data } = await sb.auth.getSession()
+    return data.session?.access_token ?? null
+  } catch {
+    return null
   }
 }
 

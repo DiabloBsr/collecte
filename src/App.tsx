@@ -24,11 +24,12 @@ import {
   signOut,
 } from './cloud'
 import LoginPage from './pages/Login'
+import AdminPage from './pages/Admin'
 import BuilderPage from './pages/Builder'
 import CollectPage from './pages/Collect'
 import DashboardPage from './pages/Dashboard'
 
-type Route = 'questions' | 'formulaire' | 'donnees'
+type Route = 'questions' | 'formulaire' | 'donnees' | 'admin'
 
 const ROUTES: { id: Route; label: string }[] = [
   { id: 'questions', label: 'Questions' },
@@ -38,6 +39,7 @@ const ROUTES: { id: Route; label: string }[] = [
 
 function routeFromHash(): Route {
   const h = window.location.hash.replace(/^#\/?/, '')
+  if (h === 'admin') return 'admin'
   const found = ROUTES.find((r) => r.id === h)
   return found ? found.id : 'questions'
 }
@@ -61,19 +63,23 @@ export default function App() {
     cloudEnabled ? 'loading' : 'signedin',
   )
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     if (!cloudEnabled) return
+    const apply = (session: Awaited<ReturnType<typeof getSession>>) => {
+      setAuth(session ? 'signedin' : 'signedout')
+      setUserEmail(session?.user.email ?? null)
+      setIsAdmin(
+        (session?.user.app_metadata as Record<string, unknown> | null)?.role ===
+          'admin',
+      )
+    }
     let active = true
     void getSession().then((session) => {
-      if (!active) return
-      setAuth(session ? 'signedin' : 'signedout')
-      setUserEmail(session?.user.email ?? null)
+      if (active) apply(session)
     })
-    const off = onAuthChange((session) => {
-      setAuth(session ? 'signedin' : 'signedout')
-      setUserEmail(session?.user.email ?? null)
-    })
+    const off = onAuthChange(apply)
     return () => {
       active = false
       off()
@@ -390,6 +396,9 @@ export default function App() {
     )
   }
 
+  // Un non-admin qui tape #/admin retombe sur la page Questions.
+  const page: Route = route === 'admin' && !isAdmin ? 'questions' : route
+
   return (
     <div className="app">
       <div className="topbar" aria-hidden="true" />
@@ -418,6 +427,15 @@ export default function App() {
               )}
             </a>
           ))}
+          {isAdmin && (
+            <a
+              href="#/admin"
+              className={route === 'admin' ? 'nav-link active' : 'nav-link'}
+              aria-current={route === 'admin' ? 'page' : undefined}
+            >
+              Admin
+            </a>
+          )}
           {cloudEnabled && userEmail && (
             <button
               type="button"
@@ -431,8 +449,8 @@ export default function App() {
         </nav>
       </header>
 
-      <main className="page" key={route} ref={mainRef}>
-        {route === 'questions' && (
+      <main className="page" key={page} ref={mainRef}>
+        {page === 'questions' && (
           <BuilderPage
             questions={questions}
             submissions={submissions}
@@ -441,7 +459,7 @@ export default function App() {
             confirmAction={confirmAction}
           />
         )}
-        {route === 'formulaire' && (
+        {page === 'formulaire' && (
           <CollectPage
             questions={questions}
             submissions={submissions}
@@ -449,7 +467,7 @@ export default function App() {
             notify={notify}
           />
         )}
-        {route === 'donnees' && (
+        {page === 'donnees' && (
           <DashboardPage
             questions={questions}
             submissions={submissions}
@@ -457,6 +475,9 @@ export default function App() {
             notify={notify}
             confirmAction={confirmAction}
           />
+        )}
+        {page === 'admin' && (
+          <AdminPage notify={notify} confirmAction={confirmAction} />
         )}
       </main>
 
