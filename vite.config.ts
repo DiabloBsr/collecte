@@ -38,7 +38,6 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: '/index.html',
         // Le chunk exceljs (~940 Ko) doit être précaché pour l'export hors ligne.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         // Purge les précaches des versions précédentes : un vieux service
@@ -46,6 +45,20 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        // PAS de navigateFallback (cache-first) : le HTML servi doit toujours
+        // être le plus récent, sinon il réclame un bundle supprimé après un
+        // déploiement → page vide. Réseau d'abord, cache en secours hors ligne.
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-navigations',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 8 },
+            },
+          },
+        ],
       },
     }),
   ],

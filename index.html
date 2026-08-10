@@ -33,18 +33,11 @@
          corrompu), on purge caches + service workers et on recharge UNE fois. */
       (function () {
         var KEY = 'collecte.selfheal'
-        setTimeout(function () {
-          if (!document.getElementById('boot-fallback')) return // app montée : OK
-          if (sessionStorage.getItem(KEY)) {
-            var el = document.getElementById('boot-fallback')
-            if (el) {
-              el.innerHTML =
-                '<p style="font-size:22px;color:#221a10;margin:0">Collecte<span style="color:#b3441a">.</span></p>' +
-                '<p style="margin:0;font-size:14px">Impossible de charger l\'application.<br>Vérifiez votre connexion, puis réessayez.</p>' +
-                '<button onclick="location.reload()" style="font:inherit;font-size:14px;padding:9px 18px;border:none;border-radius:8px;background:#b3441a;color:#fff7ee;cursor:pointer">Réessayer</button>'
-            }
-            return
-          }
+        var healing = false
+        function heal() {
+          if (healing) return
+          healing = true
+          if (sessionStorage.getItem(KEY)) return
           sessionStorage.setItem(KEY, '1')
           var done = function () { location.reload() }
           var jobs = []
@@ -59,6 +52,30 @@
             }))
           }
           Promise.all(jobs).then(done, done)
+        }
+        /* Un script de module qui échoue (bundle supprimé après déploiement)
+           déclenche la réparation immédiatement, sans attendre. */
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e.target
+            if (t && t.tagName === 'SCRIPT') heal()
+          },
+          true,
+        )
+        setTimeout(function () {
+          if (!document.getElementById('boot-fallback')) return // app montée : OK
+          if (sessionStorage.getItem(KEY)) {
+            var el = document.getElementById('boot-fallback')
+            if (el) {
+              el.innerHTML =
+                '<p style="font-size:22px;color:#221a10;margin:0">Collecte<span style="color:#b3441a">.</span></p>' +
+                '<p style="margin:0;font-size:14px">Impossible de charger l\'application.<br>Vérifiez votre connexion, puis réessayez.</p>' +
+                '<button onclick="location.reload()" style="font:inherit;font-size:14px;padding:9px 18px;border:none;border-radius:8px;background:#b3441a;color:#fff7ee;cursor:pointer">Réessayer</button>'
+            }
+            return
+          }
+          heal()
         }, 9000)
       })()
     </script>
