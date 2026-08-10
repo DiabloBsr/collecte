@@ -233,53 +233,39 @@ export default function AdminPage({
             </div>
           )}
           {users && (
-            <div className="table-wrap">
-              <table className="data">
-                <thead>
-                  <tr>
-                    <th scope="col">Email</th>
-                    <th scope="col">Rôle</th>
-                    <th scope="col">Créé le</th>
-                    <th scope="col">Dernière connexion</th>
-                    <th scope="col">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id}>
-                      <td title={u.email}>{u.email}</td>
-                      <td>
-                        <span className={u.role === 'admin' ? 'role-chip admin' : 'role-chip'}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="td-date">{dateFmt.format(new Date(u.createdAt))}</td>
-                      <td className="td-date">
-                        {u.lastSignInAt ? dateFmt.format(new Date(u.lastSignInAt)) : '—'}
-                      </td>
-                      <td className="td-actions">
-                        <button
-                          className="btn ghost sm"
-                          onClick={() => void toggleRole(u)}
-                        >
-                          {u.role === 'admin' ? 'Rétrograder' : 'Promouvoir'}
-                        </button>{' '}
-                        <button
-                          className="icon-btn"
-                          onClick={() => void removeUser(u)}
-                          aria-label={`Supprimer le compte ${u.email}`}
-                          title="Supprimer ce compte"
-                        >
-                          ×
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="user-list">
+              {users.map((u) => (
+                <li key={u.id} className="card user-card">
+                  <div className="user-head">
+                    <span className="user-email" title={u.email}>
+                      {u.email}
+                    </span>
+                    <span className={u.role === 'admin' ? 'role-chip admin' : 'role-chip'}>
+                      {u.role}
+                    </span>
+                  </div>
+                  <p className="user-meta">
+                    Créé le {dateFmt.format(new Date(u.createdAt))}
+                    {' · '}
+                    {u.lastSignInAt
+                      ? `dernière connexion ${dateFmt.format(new Date(u.lastSignInAt))}`
+                      : 'jamais connecté'}
+                  </p>
+                  <div className="user-actions">
+                    <button className="btn ghost sm" onClick={() => void toggleRole(u)}>
+                      {u.role === 'admin' ? 'Rétrograder' : 'Promouvoir admin'}
+                    </button>
+                    <button
+                      className="btn danger sm"
+                      onClick={() => void removeUser(u)}
+                      aria-label={`Supprimer le compte ${u.email}`}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       </div>

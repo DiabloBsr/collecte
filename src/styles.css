@@ -530,6 +530,60 @@ body {
   align-items: center;
 }
 
+/* Liste des comptes (page Admin) — cartes, jamais de défilement latéral */
+
+.user-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-card {
+  padding: 14px 16px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.user-card:hover {
+  border-color: var(--line-strong);
+  box-shadow:
+    0 2px 4px rgba(34, 26, 16, 0.06),
+    0 16px 36px -22px rgba(34, 26, 16, 0.38);
+}
+
+.user-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.user-email {
+  font-weight: 600;
+  font-size: 14.5px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.user-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+
+.user-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px dashed var(--line);
+  padding-top: 11px;
+}
+
 .role-chip {
   font-family: var(--font-mono);
   font-size: 10.5px;
