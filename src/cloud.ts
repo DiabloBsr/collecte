@@ -106,7 +106,14 @@ export async function updateProfile(
   try {
     const sb = await client()
     const { error } = await sb.auth.updateUser({ data })
-    return error ? error.message : null
+    if (!error) return null
+    if (/session.*missing|missing.*session/i.test(error.message)) {
+      // Session évaporée (déconnexion ailleurs, données effacées…) : on purge
+      // proprement — l'app repasse d'elle-même à l'écran de connexion.
+      await sb.auth.signOut()
+      return 'Session expirée — reconnectez-vous.'
+    }
+    return error.message
   } catch (e) {
     recordError(e)
     return 'Enregistrement impossible — vérifiez le réseau.'
