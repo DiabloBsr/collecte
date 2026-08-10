@@ -1127,10 +1127,10 @@ input[type='radio']:focus-visible {
 }
 
 .collect-form {
-  max-width: 720px;
+  max-width: 760px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .ask {
@@ -1138,8 +1138,41 @@ input[type='radio']:focus-visible {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px 20px 20px;
+  padding: 15px 18px 16px;
   transition: border-color 0.2s;
+}
+
+/* Fiche répondant : une seule carte, champs en grille */
+
+.fiche {
+  padding: 20px 22px 22px;
+}
+
+.fiche-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  margin: 0 0 16px;
+}
+
+.fiche-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px 24px;
+  align-items: start;
+}
+
+.fiche-field .ask-legend {
+  margin-bottom: 6px;
+}
+
+.fiche-field .ask-label {
+  font-size: 15px;
+}
+
+.fiche-field.error .input {
+  border-color: var(--danger);
 }
 
 .ask.error {
@@ -1169,6 +1202,29 @@ input[type='radio']:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.choice-list.inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.choice-list.inline .choice {
+  border: 1px solid var(--line);
+  background: #fffefb;
+  border-radius: 999px;
+  padding: 7px 15px 7px 11px;
+}
+
+.choice-list.inline .choice:hover {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.choice-list.inline .choice:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-wash);
 }
 
 .choice {

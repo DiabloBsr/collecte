@@ -147,12 +147,22 @@ export default function CollectPage({
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function renderAsk(q: Question, index: number | null) {
+  function renderAsk(q: Question, index: number | null, compact = false) {
+    const wrapperClass = compact
+      ? errors[q.id]
+        ? 'fiche-field error'
+        : 'fiche-field'
+      : errors[q.id]
+        ? 'ask error'
+        : 'ask'
+    // Un groupe de choix nombreux occupe toute la largeur de la grille.
+    const spanFull = compact && q.type !== 'text' && q.options.length > 3
     return (
       <div
         key={q.id}
         id={`q-${q.id}`}
-        className={errors[q.id] ? 'ask error' : 'ask'}
+        className={wrapperClass}
+        style={spanFull ? { gridColumn: '1 / -1' } : undefined}
         role={q.type === 'radio' ? 'radiogroup' : 'group'}
         aria-labelledby={`ql-${q.id}`}
         aria-required={q.type !== 'text' && q.required ? true : undefined}
@@ -204,7 +214,7 @@ export default function CollectPage({
         )}
 
         {q.type === 'radio' && (
-          <div className="choice-list">
+          <div className="choice-list inline">
             {q.options.map((o) => (
               <label key={o} className="choice">
                 <input
@@ -234,7 +244,7 @@ export default function CollectPage({
         )}
 
         {q.type === 'checkbox' && (
-          <div className="choice-list">
+          <div className="choice-list inline">
             {q.options.map((o) => {
               const v = answers[q.id]
               const list = Array.isArray(v) ? v : []
@@ -317,7 +327,12 @@ export default function CollectPage({
           <form className="collect-form" onSubmit={handleSubmit} noValidate>
             {effectiveStep === 'infos' ? (
               <>
-                {identity.map((q) => renderAsk(q, null))}
+                <div className="card fiche">
+                  <h2 className="fiche-title">Personne interrogée</h2>
+                  <div className="fiche-grid">
+                    {identity.map((q) => renderAsk(q, null, true))}
+                  </div>
+                </div>
                 <div className="collect-actions">
                   {hasSurvey ? (
                     <button
