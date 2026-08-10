@@ -403,7 +403,8 @@ export default function App() {
     <div className="app">
       <div className="topbar" aria-hidden="true" />
 
-      <header className="masthead">
+      <header className="masthead-bar">
+        <div className="masthead">
         <div className="brand">
           <a href="#/questions" className="brand-name">
             Collecte<span className="brand-dot">.</span>
@@ -440,13 +441,36 @@ export default function App() {
             <button
               type="button"
               className="nav-signout"
-              onClick={() => void signOut()}
+              onClick={() => {
+                void (async () => {
+                  const ok = await confirmAction({
+                    title: 'Se déconnecter ?',
+                    message: `Vous êtes connecté en tant que ${userEmail}.\n\nLes données restent enregistrées sur cet appareil et dans la base.`,
+                    confirmLabel: 'Se déconnecter',
+                  })
+                  if (ok) await signOut()
+                })()
+              }}
               title={`Connecté : ${userEmail} — se déconnecter`}
+              aria-label="Se déconnecter"
             >
-              ⏻
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 3v8" />
+                <path d="M6.3 6.5a8 8 0 1 0 11.4 0" />
+              </svg>
             </button>
           )}
         </nav>
+        </div>
       </header>
 
       <main className="page" key={page} ref={mainRef}>

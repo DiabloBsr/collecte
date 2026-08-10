@@ -26,8 +26,14 @@ const TYPE_CHOICES: { id: QuestionType; glyph: string; hint: string }[] = [
 ]
 
 const SECTION_CHOICES: { id: QuestionSection; hint: string }[] = [
-  { id: 'identity', hint: 'Info sur la personne interrogée' },
-  { id: 'survey', hint: 'Question de l’enquête' },
+  {
+    id: 'identity',
+    hint: 'Qui on interroge — infos de la personne (nom, âge…), saisies à l’étape 1.',
+  },
+  {
+    id: 'survey',
+    hint: 'Ce qu’on lui demande — les questions de l’enquête, saisies à l’étape 2.',
+  },
 ]
 
 const IDENTITY_PRESETS: IdentityPreset[] = [
@@ -227,12 +233,14 @@ function QuestionForm({
               className={section === s.id ? 'seg-btn compact active' : 'seg-btn compact'}
               aria-pressed={section === s.id}
               onClick={() => setSection(s.id)}
-              title={s.hint}
             >
               <span className="seg-name">{SECTION_LABELS[s.id]}</span>
             </button>
           ))}
         </div>
+        <p className="seg-explain">
+          {SECTION_CHOICES.find((s) => s.id === section)?.hint}
+        </p>
       </div>
 
       <div className="field">
