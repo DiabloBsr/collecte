@@ -21,15 +21,23 @@ import {
   pullAll,
   pushQuestions,
   pushSubmissions,
-  signOut,
 } from './cloud'
 import LoginPage from './pages/Login'
 import AdminPage from './pages/Admin'
+import ProfilePage from './pages/Profile'
 import BuilderPage from './pages/Builder'
 import CollectPage from './pages/Collect'
 import DashboardPage from './pages/Dashboard'
 
-type Route = 'questions' | 'formulaire' | 'donnees' | 'admin'
+type Route = 'questions' | 'formulaire' | 'donnees' | 'admin' | 'profil'
+
+const ROUTE_TITLES: Record<Route, string> = {
+  questions: 'Questions',
+  formulaire: 'Formulaire',
+  donnees: 'Données',
+  admin: 'Admin',
+  profil: 'Profil',
+}
 
 const ROUTES: { id: Route; label: string }[] = [
   { id: 'questions', label: 'Questions' },
@@ -39,7 +47,7 @@ const ROUTES: { id: Route; label: string }[] = [
 
 function routeFromHash(): Route {
   const h = window.location.hash.replace(/^#\/?/, '')
-  if (h === 'admin') return 'admin'
+  if (h === 'admin' || h === 'profil') return h
   const found = ROUTES.find((r) => r.id === h)
   return found ? found.id : 'questions'
 }
@@ -64,6 +72,8 @@ export default function App() {
   )
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [displayName, setDisplayName] = useState('')
 
   useEffect(() => {
     if (!cloudEnabled) return
@@ -74,6 +84,9 @@ export default function App() {
         (session?.user.app_metadata as Record<string, unknown> | null)?.role ===
           'admin',
       )
+      const meta = (session?.user.user_metadata ?? {}) as Record<string, unknown>
+      setAvatarUrl(typeof meta.avatar === 'string' ? meta.avatar : '')
+      setDisplayName(typeof meta.display_name === 'string' ? meta.display_name : '')
     }
     let active = true
     void getSession().then((session) => {
@@ -208,8 +221,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const label = ROUTES.find((r) => r.id === route)?.label ?? 'Collecte'
-    document.title = `${label} — Collecte`
+    document.title = `${ROUTE_TITLES[route]} — Collecte`
     if (isFirstRoute.current) {
       isFirstRoute.current = false
       return
@@ -396,8 +408,12 @@ export default function App() {
     )
   }
 
-  // Un non-admin qui tape #/admin retombe sur la page Questions.
-  const page: Route = route === 'admin' && !isAdmin ? 'questions' : route
+  // Un non-admin qui tape #/admin (ou #/profil sans compte) retombe sur Questions.
+  const page: Route =
+    (route === 'admin' && !isAdmin) ||
+    (route === 'profil' && !(cloudEnabled && userEmail))
+      ? 'questions'
+      : route
 
   return (
     <div className="app">
@@ -437,36 +453,26 @@ export default function App() {
             </a>
           )}
           {cloudEnabled && userEmail && (
-            <button
-              type="button"
-              className="nav-signout"
-              onClick={() => {
-                void (async () => {
-                  const ok = await confirmAction({
-                    title: 'Se déconnecter ?',
-                    message: `Vous êtes connecté en tant que ${userEmail}.\n\nLes données restent enregistrées sur cet appareil et dans la base.`,
-                    confirmLabel: 'Se déconnecter',
-                  })
-                  if (ok) await signOut()
-                })()
-              }}
-              title={`Connecté : ${userEmail} — se déconnecter`}
-              aria-label="Se déconnecter"
+            <a
+              href="#/profil"
+              className={route === 'profil' ? 'nav-avatar active' : 'nav-avatar'}
+              title={`Mon profil — ${displayName || userEmail}`}
+              aria-label="Mon profil"
+              aria-current={route === 'profil' ? 'page' : undefined}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <path d="M12 3v8" />
-                <path d="M6.3 6.5a8 8 0 1 0 11.4 0" />
-              </svg>
-            </button>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" />
+              ) : (
+                <span>
+                  {(displayName.trim() || userEmail)
+                    .split(/[\s@._-]+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part[0]?.toUpperCase() ?? '')
+                    .join('') || '?'}
+                </span>
+              )}
+            </a>
           )}
         </nav>
         </div>
@@ -501,6 +507,9 @@ export default function App() {
         )}
         {page === 'admin' && (
           <AdminPage notify={notify} confirmAction={confirmAction} />
+        )}
+        {page === 'profil' && (
+          <ProfilePage notify={notify} confirmAction={confirmAction} />
         )}
       </main>
 

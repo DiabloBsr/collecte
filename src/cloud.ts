@@ -98,6 +98,21 @@ export async function getAccessToken(): Promise<string | null> {
   }
 }
 
+/** Met à jour les métadonnées de profil (nom, téléphone, avatar…). */
+export async function updateProfile(
+  data: Record<string, unknown>,
+): Promise<string | null> {
+  if (!cloudEnabled) return 'Base non configurée.'
+  try {
+    const sb = await client()
+    const { error } = await sb.auth.updateUser({ data })
+    return error ? error.message : null
+  } catch (e) {
+    recordError(e)
+    return 'Enregistrement impossible — vérifiez le réseau.'
+  }
+}
+
 export async function signOut(): Promise<void> {
   if (!cloudEnabled) return
   try {
