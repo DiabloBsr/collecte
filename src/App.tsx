@@ -505,24 +505,10 @@ export default function App() {
     [notify],
   )
 
-  if (cloudEnabled && auth === 'loading') {
-    return (
-      <div className="app">
-        <div className="topbar" aria-hidden="true" />
-      </div>
-    )
-  }
-
-  if (cloudEnabled && auth === 'signedout') {
-    return (
-      <div className="app">
-        <div className="topbar" aria-hidden="true" />
-        <LoginPage />
-      </div>
-    )
-  }
-
   // ── Enquête courante et vues scopées ──
+  // ⚠️ Tous les hooks doivent rester AVANT les retours anticipés ci-dessous :
+  // un hook appelé après un `return` conditionnel change le nombre de hooks
+  // entre deux rendus (écran de connexion → app) et fait planter React (#310).
   const currentQuestionnaire =
     questionnaires.find((q) => q.id === currentQid) ?? questionnaires[0] ?? null
   const activeQid = currentQuestionnaire?.id ?? DEFAULT_QUESTIONNAIRE_ID
@@ -559,6 +545,24 @@ export default function App() {
   function selectQuestionnaire(id: string) {
     setCurrentQid(id)
     saveCurrentQuestionnaireId(id)
+  }
+
+  // ── Retours anticipés (aucun hook au-delà de ce point) ──
+  if (cloudEnabled && auth === 'loading') {
+    return (
+      <div className="app">
+        <div className="topbar" aria-hidden="true" />
+      </div>
+    )
+  }
+
+  if (cloudEnabled && auth === 'signedout') {
+    return (
+      <div className="app">
+        <div className="topbar" aria-hidden="true" />
+        <LoginPage />
+      </div>
+    )
   }
 
   // Un non-admin qui tape #/admin (ou #/profil sans compte) retombe sur
