@@ -21,6 +21,7 @@ import {
   pullAll,
   pushQuestions,
   pushSubmissions,
+  signOut,
 } from './cloud'
 import LoginPage from './pages/Login'
 import AdminPage from './pages/Admin'
@@ -74,6 +75,26 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
 
   useEffect(() => {
     if (!cloudEnabled) return
@@ -265,12 +286,14 @@ export default function App() {
     const target = lastFocused.current
     window.requestAnimationFrame(() => {
       if (target?.isConnected) {
-        target.focus()
+        target.focus({ preventScroll: true })
       } else {
+        // Le déclencheur a été supprimé par l'action : repli du focus sur le
+        // h1 SANS défilement — la page ne doit pas sauter en haut.
         const h1 = mainRef.current?.querySelector<HTMLHeadingElement>('h1')
         if (h1) {
           h1.tabIndex = -1
-          h1.focus()
+          h1.focus({ preventScroll: true })
         }
       }
     })
@@ -456,26 +479,61 @@ export default function App() {
             </a>
           )}
           {cloudEnabled && userEmail && (
-            <a
-              href="#/profil"
-              className={route === 'profil' ? 'nav-avatar active' : 'nav-avatar'}
-              title={`Mon profil — ${displayName || userEmail}`}
-              aria-label="Mon profil"
-              aria-current={route === 'profil' ? 'page' : undefined}
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" />
-              ) : (
-                <span>
-                  {(displayName.trim() || userEmail)
-                    .split(/[\s@._-]+/)
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((part) => part[0]?.toUpperCase() ?? '')
-                    .join('') || '?'}
-                </span>
+            <div className="avatar-menu" ref={menuRef}>
+              <button
+                type="button"
+                className={route === 'profil' ? 'nav-avatar active' : 'nav-avatar'}
+                title={displayName || userEmail}
+                aria-label="Menu du compte"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  <span>
+                    {(displayName.trim() || userEmail)
+                      .split(/[\s@._-]+/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part[0]?.toUpperCase() ?? '')
+                      .join('') || '?'}
+                  </span>
+                )}
+              </button>
+              {menuOpen && (
+                <div className="avatar-pop" role="menu" aria-label="Compte">
+                  <p className="avatar-pop-id">{displayName || userEmail}</p>
+                  <a
+                    href="#/profil"
+                    role="menuitem"
+                    className="avatar-pop-item"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Mon profil
+                  </a>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="avatar-pop-item danger"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      void (async () => {
+                        const ok = await confirmAction({
+                          title: 'Se déconnecter ?',
+                          message: `Vous êtes connecté en tant que ${userEmail}.\n\nLes données restent enregistrées sur cet appareil et dans la base.`,
+                          confirmLabel: 'Se déconnecter',
+                        })
+                        if (ok) await signOut()
+                      })()
+                    }}
+                  >
+                    Se déconnecter
+                  </button>
+                </div>
               )}
-            </a>
+            </div>
           )}
         </nav>
         </div>
