@@ -141,7 +141,15 @@ body {
 }
 
 @media (max-width: 640px) {
+  /* Rangée 1 : marque + avatar ; rangée 2 : liens défilants. Le menu du
+     compte vit HORS de la nav défilante (sinon le popover serait rogné). */
+  .avatar-menu {
+    order: 2;
+    margin-left: auto;
+  }
+
   .nav {
+    order: 3;
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

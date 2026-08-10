@@ -608,8 +608,9 @@ export default function App() {
               Admin
             </a>
           )}
-          {cloudEnabled && userEmail && (
-            <div className="avatar-menu" ref={menuRef}>
+        </nav>
+        {cloudEnabled && userEmail && (
+          <div className="avatar-menu" ref={menuRef}>
               <button
                 type="button"
                 className={route === 'profil' ? 'nav-avatar active' : 'nav-avatar'}
@@ -664,8 +665,7 @@ export default function App() {
                 </div>
               )}
             </div>
-          )}
-        </nav>
+        )}
         </div>
       </header>
 
