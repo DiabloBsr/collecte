@@ -1094,6 +1094,13 @@ input[type='radio']:focus-visible {
   align-items: start;
 }
 
+/* Garde-fou : aucun enfant de grille ne peut forcer un débordement de page
+   (une colonne `1fr` nue a une min-width « auto » — un tableau chargé
+   dynamiquement élargirait toute la page). */
+.builder-grid > * {
+  min-width: 0;
+}
+
 .builder-aside {
   position: sticky;
   top: 82px;
@@ -1101,7 +1108,7 @@ input[type='radio']:focus-visible {
 
 @media (max-width: 940px) {
   .builder-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .builder-aside {
     position: static;
