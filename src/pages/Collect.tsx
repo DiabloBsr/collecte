@@ -229,17 +229,6 @@ export default function CollectPage({
                 <span>{o}</span>
               </label>
             ))}
-            {!q.required &&
-              typeof answers[q.id] === 'string' &&
-              answers[q.id] !== '' && (
-                <button
-                  type="button"
-                  className="btn ghost sm clear-choice"
-                  onClick={() => setAnswer(q.id, '')}
-                >
-                  Effacer la sélection
-                </button>
-              )}
           </div>
         )}
 

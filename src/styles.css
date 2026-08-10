@@ -1268,11 +1268,6 @@ input[type='radio']:focus-visible {
   color: var(--ink-2);
 }
 
-.clear-choice {
-  align-self: flex-start;
-  margin-top: 6px;
-}
-
 /* ————— Page Données ————— */
 
 .stats {
