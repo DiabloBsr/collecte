@@ -10,6 +10,8 @@ import type {
 } from '../types'
 import { SECTION_LABELS, TYPE_LABELS, isChoiceType } from '../types'
 import { PRESETS_KEY, loadPresets, savePresets, uid } from '../storage'
+import AiAssistant from '../components/AiAssistant'
+import type { AiQuestion } from '../components/AiAssistant'
 
 interface QuestionValues {
   label: string
@@ -442,6 +444,20 @@ export default function BuilderPage({
     }
   }
 
+  function addAiQuestions(list: AiQuestion[]) {
+    const stamped: Question[] = list.map((v) => ({
+      id: uid(),
+      createdAt: Date.now(),
+      questionnaireId: '',
+      ...v,
+    }))
+    if (updateQuestions((current) => [...current, ...stamped])) {
+      notify(
+        `${stamped.length} question${stamped.length > 1 ? 's' : ''} ajoutée${stamped.length > 1 ? 's' : ''} par l’assistant`,
+      )
+    }
+  }
+
   function handleCreatePreset(preset: IdentityPreset) {
     const next = [...customPresets, preset]
     setCustomPresets(next)
@@ -646,6 +662,7 @@ export default function BuilderPage({
 
       <div className="builder-grid">
         <aside className="builder-aside">
+          <AiAssistant onAdd={addAiQuestions} notify={notify} />
           <div className="card panel">
             <div className="panel-head">
               <h2 className="panel-title">Nouvelle question</h2>
