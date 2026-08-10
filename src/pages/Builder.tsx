@@ -8,7 +8,7 @@ import type {
   QuestionType,
   Submission,
 } from '../types'
-import { SECTION_LABELS, TYPE_LABELS } from '../types'
+import { SECTION_LABELS, TYPE_LABELS, isChoiceType } from '../types'
 import { PRESETS_KEY, loadPresets, savePresets, uid } from '../storage'
 
 interface QuestionValues {
@@ -21,6 +21,7 @@ interface QuestionValues {
 
 const TYPE_CHOICES: { id: QuestionType; glyph: string; hint: string }[] = [
   { id: 'text', glyph: 'Aa', hint: 'Réponse libre, input simple' },
+  { id: 'number', glyph: '123', hint: 'Valeur numérique (âge, quantité…)' },
   { id: 'radio', glyph: '◉', hint: 'Une seule option possible' },
   { id: 'checkbox', glyph: '▣', hint: 'Plusieurs options possibles' },
 ]
@@ -39,7 +40,7 @@ const SECTION_CHOICES: { id: QuestionSection; hint: string }[] = [
 const IDENTITY_PRESETS: IdentityPreset[] = [
   { label: 'Nom', type: 'text', options: [] },
   { label: 'Prénom', type: 'text', options: [] },
-  { label: 'Âge', type: 'text', options: [] },
+  { label: 'Âge', type: 'number', options: [] },
   { label: 'Sexe', type: 'radio', options: ['Femme', 'Homme', 'Autre'] },
   { label: 'Téléphone', type: 'text', options: [] },
   { label: 'Email', type: 'text', options: [] },
@@ -165,7 +166,7 @@ function QuestionForm({
   const [required, setRequired] = useState(initial?.required ?? false)
   const [error, setError] = useState<string | null>(null)
 
-  const needsOptions = type !== 'text'
+  const needsOptions = isChoiceType(type)
 
   function setOption(index: number, value: string) {
     setOptions((prev) => prev.map((o, i) => (i === index ? value : o)))
@@ -443,19 +444,19 @@ export default function BuilderPage({
     if (!prev) return
     const n = answeredCounts.get(id) ?? 0
 
-    if (prev.options.length > 0 && values.type === 'text') {
+    if (prev.options.length > 0 && !isChoiceType(values.type)) {
       const detail =
         n > 0
           ? `\n\n${n > 1 ? `Les ${n} réponses déjà collectées ne seront plus ventilées` : 'La réponse déjà collectée ne sera plus ventilée'} par option dans le tableau de bord.`
           : ''
       const ok = await confirmAction({
         title: 'Supprimer les options ?',
-        message: `Passer en « Texte libre » supprimera définitivement les ${prev.options.length} options existantes de cette question.${detail}`,
+        message: `Passer en « ${TYPE_LABELS[values.type]} » supprimera définitivement les ${prev.options.length} options existantes de cette question.${detail}`,
         confirmLabel: 'Continuer',
         danger: true,
       })
       if (!ok) return
-    } else if (values.type !== 'text' && n > 0) {
+    } else if (isChoiceType(values.type) && n > 0) {
       const orphaned = prev.options.filter((o) => !values.options.includes(o))
       if (orphaned.length > 0) {
         const plural = orphaned.length > 1

@@ -135,6 +135,30 @@ body {
   gap: 2px;
 }
 
+.nav-link,
+.nav-avatar {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .nav {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 8px 8px 10px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+}
+
 .nav-link {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1532,6 +1556,108 @@ input[type='radio']:focus-visible {
   .bar-value {
     text-align: left;
   }
+}
+
+/* Statistiques numériques */
+
+.number-tiles {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.number-tile {
+  display: flex;
+  flex-direction: column;
+}
+
+.num-val {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-2);
+}
+
+.histo {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 150px;
+  margin-top: 18px;
+}
+
+.histo-col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.histo-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  margin-bottom: 3px;
+}
+
+.histo-bar {
+  width: 100%;
+  max-width: 46px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+  border-radius: 4px 4px 0 0;
+}
+
+.histo-bar.zero {
+  background: var(--surface-2);
+}
+
+.histo-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.chart-card {
+  padding: 16px 20px 12px;
+  margin-bottom: 26px;
+}
+
+.timeline-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.timeline-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--ink-2);
+}
+
+.timeline-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  margin-top: 2px;
 }
 
 /* Réponses libres */

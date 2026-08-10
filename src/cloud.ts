@@ -190,7 +190,9 @@ interface SubmissionRow {
 
 function toQuestion(r: QuestionRow): Question {
   const type: QuestionType =
-    r.type === 'radio' || r.type === 'checkbox' ? r.type : 'text'
+    r.type === 'radio' || r.type === 'checkbox' || r.type === 'number'
+      ? r.type
+      : 'text'
   const section: QuestionSection = r.section === 'identity' ? 'identity' : 'survey'
   return {
     id: r.id,

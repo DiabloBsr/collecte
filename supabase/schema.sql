@@ -6,7 +6,7 @@
 create table if not exists public.questions (
   id         text primary key,
   label      text not null,
-  type       text not null check (type in ('text', 'radio', 'checkbox')),
+  type       text not null check (type in ('text', 'number', 'radio', 'checkbox')),
   section    text not null default 'survey' check (section in ('identity', 'survey')),
   options    jsonb not null default '[]'::jsonb,
   required   boolean not null default false,

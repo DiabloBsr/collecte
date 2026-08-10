@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AnswerValue, Question, Submission } from '../types'
+import { isChoiceType } from '../types'
 import { uid } from '../storage'
 
 type Step = 'infos' | 'survey'
@@ -156,7 +157,7 @@ export default function CollectPage({
         ? 'ask error'
         : 'ask'
     // Un groupe de choix nombreux occupe toute la largeur de la grille.
-    const spanFull = compact && q.type !== 'text' && q.options.length > 3
+    const spanFull = compact && isChoiceType(q.type) && q.options.length > 3
     return (
       <div
         key={q.id}
@@ -165,7 +166,7 @@ export default function CollectPage({
         style={spanFull ? { gridColumn: '1 / -1' } : undefined}
         role={q.type === 'radio' ? 'radiogroup' : 'group'}
         aria-labelledby={`ql-${q.id}`}
-        aria-required={q.type !== 'text' && q.required ? true : undefined}
+        aria-required={isChoiceType(q.type) && q.required ? true : undefined}
         aria-invalid={q.type === 'radio' && errors[q.id] ? true : undefined}
         aria-describedby={errors[q.id] ? `qe-${q.id}` : undefined}
       >
@@ -173,7 +174,7 @@ export default function CollectPage({
           {index !== null && (
             <span className="q-index">{String(index + 1).padStart(2, '0')}</span>
           )}
-          {q.type === 'text' ? (
+          {!isChoiceType(q.type) ? (
             <label id={`ql-${q.id}`} htmlFor={`qi-${q.id}`} className="ask-label">
               {q.label}
               {q.required && (
@@ -199,14 +200,16 @@ export default function CollectPage({
           )}
         </div>
 
-        {q.type === 'text' && (
+        {!isChoiceType(q.type) && (
           <input
             id={`qi-${q.id}`}
             className="input"
-            type="text"
+            type={q.type === 'number' ? 'number' : 'text'}
+            inputMode={q.type === 'number' ? 'numeric' : undefined}
+            step={q.type === 'number' ? 'any' : undefined}
             value={typeof answers[q.id] === 'string' ? (answers[q.id] as string) : ''}
             onChange={(e) => setAnswer(q.id, e.target.value)}
-            placeholder="Votre réponse…"
+            placeholder={q.type === 'number' ? 'Ex. 25' : 'Votre réponse…'}
             aria-required={q.required}
             aria-invalid={errors[q.id] || undefined}
             aria-describedby={errors[q.id] ? `qe-${q.id}` : undefined}
