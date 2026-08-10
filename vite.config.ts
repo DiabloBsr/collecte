@@ -41,6 +41,11 @@ export default defineConfig({
         navigateFallback: '/index.html',
         // Le chunk exceljs (~940 Ko) doit être précaché pour l'export hors ligne.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        // Purge les précaches des versions précédentes : un vieux service
+        // worker ne doit jamais servir un bundle qui n'existe plus (écran blanc).
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
       },
     }),
   ],

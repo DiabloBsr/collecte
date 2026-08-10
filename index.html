@@ -17,7 +17,50 @@
     />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-fallback" style="
+        min-height: 70vh; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 14px;
+        font-family: Georgia, serif; color: #6f6350; text-align: center; padding: 24px;">
+        <p style="font-size: 22px; color: #221a10; margin: 0;">Collecte<span style="color:#b3441a">.</span></p>
+        <p style="margin: 0; font-size: 14px;">Chargement…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      /* Filet anti-écran blanc : si l'application n'a pas pris la main au bout
+         de 9 s (service worker périmé servant un bundle disparu, cache PWA
+         corrompu), on purge caches + service workers et on recharge UNE fois. */
+      (function () {
+        var KEY = 'collecte.selfheal'
+        setTimeout(function () {
+          if (!document.getElementById('boot-fallback')) return // app montée : OK
+          if (sessionStorage.getItem(KEY)) {
+            var el = document.getElementById('boot-fallback')
+            if (el) {
+              el.innerHTML =
+                '<p style="font-size:22px;color:#221a10;margin:0">Collecte<span style="color:#b3441a">.</span></p>' +
+                '<p style="margin:0;font-size:14px">Impossible de charger l\'application.<br>Vérifiez votre connexion, puis réessayez.</p>' +
+                '<button onclick="location.reload()" style="font:inherit;font-size:14px;padding:9px 18px;border:none;border-radius:8px;background:#b3441a;color:#fff7ee;cursor:pointer">Réessayer</button>'
+            }
+            return
+          }
+          sessionStorage.setItem(KEY, '1')
+          var done = function () { location.reload() }
+          var jobs = []
+          if (window.caches && caches.keys) {
+            jobs.push(caches.keys().then(function (names) {
+              return Promise.all(names.map(function (n) { return caches.delete(n) }))
+            }))
+          }
+          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+            jobs.push(navigator.serviceWorker.getRegistrations().then(function (regs) {
+              return Promise.all(regs.map(function (r) { return r.unregister() }))
+            }))
+          }
+          Promise.all(jobs).then(done, done)
+        }, 9000)
+      })()
+    </script>
   </body>
 </html>
